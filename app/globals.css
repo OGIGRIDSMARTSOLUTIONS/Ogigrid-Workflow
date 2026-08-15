@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-canvas text-ink antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.input {
+  @apply w-full rounded-sm border border-border bg-canvas px-3 py-1.5 text-sm text-ink outline-none transition-colors focus:border-brand-400 focus:bg-panel;
+}
