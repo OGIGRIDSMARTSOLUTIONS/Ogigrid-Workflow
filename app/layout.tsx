@@ -8,13 +8,18 @@ import { ToastProvider } from "@/components/ui/Toast";
 export const metadata: Metadata = {
   title: "Ogigrid Workflow",
   description: "Internal work-management application for Ogigrid.",
+  icons: {
+    icon: "/ogigrid-logo.jpg",
+    shortcut: "/ogigrid-logo.jpg",
+    apple: "/ogigrid-logo.jpg",
+  },
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="en">
       <body>
