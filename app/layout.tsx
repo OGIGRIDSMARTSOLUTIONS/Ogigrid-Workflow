@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-
 import { AppProvider } from "@/lib/store";
 import { AuthProvider } from "@/lib/auth";
 import { RouteGuard } from "@/components/auth/RouteGuard";
@@ -18,9 +17,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
       <body>
