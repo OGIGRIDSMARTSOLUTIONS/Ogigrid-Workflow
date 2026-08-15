@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+
 import { AppProvider } from "@/lib/store";
 import { AuthProvider } from "@/lib/auth";
 import { RouteGuard } from "@/components/auth/RouteGuard";
