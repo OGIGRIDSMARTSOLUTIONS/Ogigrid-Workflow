@@ -71,7 +71,9 @@ export async function listEmployees() {
 }
 
 export async function createEmployee(input: {
-  name: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   password: string;
   role: "Admin" | "Employee";
@@ -79,18 +81,25 @@ export async function createEmployee(input: {
   status: "Active" | "Inactive";
   isPrimaryAdmin?: boolean;
 }) {
+  const legacyName = (input.name ?? "").trim();
+  const legacyParts = legacyName ? legacyName.split(/\s+/).filter(Boolean) : [];
+  const firstName = (input.firstName ?? legacyParts[0] ?? "").trim();
+  const lastName = (input.lastName ?? legacyParts.slice(1).join(" ")).trim();
+  const name = [firstName, lastName].filter(Boolean).join(" ").trim() || legacyName || "Unknown";
   const passwordHash = await hashPassword(input.password);
   const row = await queryOne<any>(
-    `INSERT INTO employees (name, email, password_hash, role, departments, status, is_primary_admin)
-     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    `INSERT INTO employees (name, first_name, last_name, email, password_hash, role, departments, status, is_primary_admin)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
     [
-      input.name,
-      input.email,
-      passwordHash,
-      input.role,
-      input.departments,
-      input.status,
-      !!input.isPrimaryAdmin,
+     name,
+     firstName,
+     lastName,
+     input.email,
+     passwordHash,
+     input.role,
+     input.departments,
+     input.status,
+     !!input.isPrimaryAdmin,
     ]
   );
   return mapEmployee(row);
@@ -100,6 +109,8 @@ export async function updateEmployee(
   id: string,
   patch: Partial<{
     name: string;
+    firstName: string;
+    lastName: string;
     email: string;
     password: string;
     role: "Admin" | "Employee";
@@ -115,21 +126,27 @@ export async function updateEmployee(
   const role = existing.is_primary_admin ? "Admin" : patch.role ?? existing.role;
   const status = existing.is_primary_admin ? "Active" : patch.status ?? existing.status;
 
+  const existingNameParts = (existing.name ?? "").split(/\s+/).filter(Boolean);
+  const nextFirstName = (patch.firstName ?? existing.first_name ?? existingNameParts[0] ?? "").trim();
+  const nextLastName = (patch.lastName ?? existing.last_name ?? existingNameParts.slice(1).join(" ")).trim();
+  const nextName = (patch.name ?? [nextFirstName, nextLastName].filter(Boolean).join(" ")).trim() || existing.name;
   const passwordHash = patch.password ? await hashPassword(patch.password) : existing.password_hash;
 
   const row = await queryOne<any>(
     `UPDATE employees SET
-       name = $1, email = $2, password_hash = $3, role = $4,
-       departments = $5, status = $6
-     WHERE id = $7 RETURNING *`,
+       name = $1, first_name = $2, last_name = $3, email = $4, password_hash = $5, role = $6,
+       departments = $7, status = $8
+     WHERE id = $9 RETURNING *`,
     [
-      patch.name ?? existing.name,
-      patch.email ?? existing.email,
-      passwordHash,
-      role,
-      patch.departments ?? existing.departments,
-      status,
-      id,
+     nextName,
+     nextFirstName,
+     nextLastName,
+     patch.email ?? existing.email,
+     passwordHash,
+     role,
+     patch.departments ?? existing.departments,
+     status,
+     id,
     ]
   );
   return mapEmployee(row);

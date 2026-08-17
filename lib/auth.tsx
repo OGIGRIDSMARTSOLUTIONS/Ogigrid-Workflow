@@ -10,7 +10,8 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => Promise<void>;
   signup: (input: {
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
     password: string;
     role: "Admin" | "Employee";
@@ -62,7 +63,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signup(input: {
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
     password: string;
     role: "Admin" | "Employee";

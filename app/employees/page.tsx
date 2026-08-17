@@ -187,12 +187,22 @@ export default function EmployeesPage() {
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-ink-muted">
-                      {employee.role}
-                      {employee.isPrimaryAdmin && (
-                        <span className="ml-1.5 rounded-sm bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700">
-                          Primary
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center rounded-sm px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                            employee.role === "Admin"
+                              ? "bg-brand-100 text-brand-700"
+                              : "bg-slate-100 text-slate-700"
+                          }`}
+                        >
+                          {employee.role === "Admin" ? "Administrator" : "Employee"}
                         </span>
-                      )}
+                        {employee.isPrimaryAdmin && (
+                          <span className="rounded-sm bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700">
+                            Primary
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-ink-muted">
                       {employee.departments.length ? employee.departments.join(", ") : "—"}

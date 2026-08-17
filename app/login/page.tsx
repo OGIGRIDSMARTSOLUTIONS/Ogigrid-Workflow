@@ -15,7 +15,8 @@ export default function LoginPage() {
   const [mode, setMode] = useState<Mode>("login");
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [signupForm, setSignupForm] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     role: "Employee" as Role,
@@ -37,27 +38,58 @@ export default function LoginPage() {
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!signupForm.firstName.trim() || !signupForm.lastName.trim()) {
+      setError("First name and last name are required.");
+      return;
+    }
     if (signupForm.password.length < 4) {
       setError("Password must be at least 4 characters.");
       return;
     }
     setSubmitting(true);
-    const result = await signup(signupForm);
+    const result = await signup({
+      firstName: signupForm.firstName.trim(),
+      lastName: signupForm.lastName.trim(),
+      email: signupForm.email,
+      password: signupForm.password,
+      role: signupForm.role,
+    });
     setSubmitting(false);
     if (!result.ok) setError(result.error ?? "Unable to create the account.");
   }
 
+  const backgroundPattern =
+    `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='none' stroke='%23B7CDF0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='120' cy='120' r='44'/%3E%3Ccircle cx='120' cy='120' r='14'/%3E%3Cpath d='M120 22v28M120 190v28M22 120h28M190 120h28M52 52l20 20M168 168l20 20M52 188l20-20M168 72l20-20'/%3E%3Cpath d='M86 86l17 17M137 137l17 17M154 86l-17 17M103 153l-17 17'/%3E%3C/g%3E%3C/svg%3E")`;
+
   if (!hydrated) {
     return (
-      <div className="flex h-screen items-center justify-center bg-canvas">
-        <p className="text-sm text-ink-faint">Loading Ogigrid Workflow…</p>
+      <div
+        className="relative flex h-screen items-center justify-center overflow-hidden px-4"
+        style={{
+          background: "linear-gradient(180deg, #F4F7FC 0%, #EEF3FC 100%)",
+          backgroundImage: `${backgroundPattern}, radial-gradient(circle at 20% 20%, rgba(93,143,219,0.12), transparent 32%), radial-gradient(circle at 80% 10%, rgba(93,143,219,0.08), transparent 24%)`,
+          backgroundRepeat: "repeat, no-repeat",
+          backgroundSize: "220px 220px, 100% 100%",
+        }}
+      >
+        <div className="pointer-events-none absolute inset-0 opacity-30" aria-hidden="true" />
+        <p className="relative z-10 text-sm text-ink-faint">Loading Ogigrid Workflow…</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
-      <div className="w-full max-w-sm rounded-md border border-border bg-panel p-8 shadow-panel">
+    <div
+      className="relative flex min-h-screen items-center justify-center overflow-hidden px-4"
+      style={{
+        background: "linear-gradient(180deg, #F4F7FC 0%, #EEF3FC 100%)",
+        backgroundImage: `${backgroundPattern}, radial-gradient(circle at 20% 20%, rgba(93,143,219,0.08), transparent 28%), radial-gradient(circle at 80% 10%, rgba(93,143,219,0.06), transparent 22%)`,
+        backgroundRepeat: "repeat, no-repeat",
+        backgroundSize: "220px 220px, 100% 100%",
+      }}
+    >
+      <div className="pointer-events-none absolute inset-0 opacity-25" aria-hidden="true" />
+      <div className="relative z-10 w-full max-w-sm rounded-md border border-border bg-panel p-8 shadow-panel">
         <div className="mb-6 flex flex-col items-center text-center">
           <div className="mb-3 h-14 w-14 overflow-hidden rounded-md">
             <Image
@@ -89,13 +121,21 @@ export default function LoginPage() {
               </p>
             )}
             <form onSubmit={handleSignup} className="space-y-4">
-              <Field label="Full name">
+              <Field label="First Name">
                 <input
                   className="input"
-                  value={signupForm.name}
-                  onChange={(e) => setSignupForm({ ...signupForm, name: e.target.value })}
+                  value={signupForm.firstName}
+                  onChange={(e) => setSignupForm({ ...signupForm, firstName: e.target.value })}
                   required
                   autoFocus
+                />
+              </Field>
+              <Field label="Last Name">
+                <input
+                  className="input"
+                  value={signupForm.lastName}
+                  onChange={(e) => setSignupForm({ ...signupForm, lastName: e.target.value })}
+                  required
                 />
               </Field>
               <Field label="Email">

@@ -4,11 +4,33 @@
 
 html,
 body {
-  height: 100%;
+  min-height: 100%;
 }
 
 body {
+  position: relative;
+  isolation: isolate;
   @apply bg-canvas text-ink antialiased;
+  background-image: linear-gradient(180deg, rgba(238, 243, 252, 0.9) 0%, rgba(247, 248, 250, 0.98) 100%);
+  background-attachment: fixed;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.22;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='none' stroke='%23B7CDF0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='120' cy='120' r='44'/%3E%3Ccircle cx='120' cy='120' r='14'/%3E%3Cpath d='M120 22v28M120 190v28M22 120h28M190 120h28M52 52l20 20M168 168l20 20M52 188l20-20M168 72l20-20'/%3E%3Cpath d='M86 86l17 17M137 137l17 17M154 86l-17 17M103 153l-17 17'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 240px 240px;
+  background-position: center;
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
 }
 
 * {

@@ -6,13 +6,18 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
 
-  const name = (body.name ?? "").trim();
+  const legacyName = (body.name ?? "").trim();
+  const legacyParts = legacyName ? legacyName.split(/\s+/).filter(Boolean) : [];
+  const firstNameFromLegacy = legacyParts[0] ?? "";
+  const lastNameFromLegacy = legacyParts.length > 1 ? legacyParts.slice(1).join(" ") : "";
+
+  const firstName = (body.firstName ?? firstNameFromLegacy).trim();
+  const lastName = (body.lastName ?? lastNameFromLegacy).trim();
   const email = (body.email ?? "").trim().toLowerCase();
   const password = body.password ?? "";
-  let role: "Admin" | "Employee" = body.role === "Admin" ? "Admin" : "Employee";
 
-  if (!name || !email || !password) {
-    return NextResponse.json({ error: "Name, email and password are required." }, { status: 400 });
+  if (!firstName || !lastName || !email || !password) {
+    return NextResponse.json({ error: "First name, last name, email and password are required." }, { status: 400 });
   }
   if (password.length < 4) {
     return NextResponse.json({ error: "Password must be at least 4 characters." }, { status: 400 });
@@ -25,12 +30,14 @@ export async function POST(request: Request) {
 
   const employeeCount = await countEmployees();
   const isFirstAccount = employeeCount === 0;
-  // The very first account in the workspace is always the Admin — and the
-  // permanent Primary Administrator — regardless of what was submitted.
-  if (isFirstAccount) role = "Admin";
+  const role: "Admin" | "Employee" = isFirstAccount ? "Admin" : "Employee";
 
+  // Public signup is only allowed to create an Admin on the very first account.
+  // Once the workspace has users, all public signups are forced to Employee
+  // regardless of any role the client attempts to send.
   const employee = await createEmployee({
-    name,
+    firstName,
+    lastName,
     email,
     password,
     role,

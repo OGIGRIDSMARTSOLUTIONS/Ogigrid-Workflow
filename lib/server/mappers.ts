@@ -20,10 +20,20 @@ export function initialsFromName(name: string) {
 }
 
 export function mapEmployee(row: any) {
+  const fullName = (row.name ?? "").trim();
+  const firstName = (row.first_name ?? "").trim();
+  const lastName = (row.last_name ?? "").trim();
+  const fallbackParts = fullName ? fullName.split(/\s+/).filter(Boolean) : [];
+  const mappedFirst = firstName || fallbackParts[0] || "";
+  const mappedLast = lastName || fallbackParts.slice(1).join(" ");
+  const displayName = [mappedFirst, mappedLast].filter(Boolean).join(" ").trim() || fullName || "";
+
   return {
     id: row.id,
-    name: row.name,
-    initials: initialsFromName(row.name),
+    name: displayName,
+    firstName: mappedFirst,
+    lastName: mappedLast,
+    initials: initialsFromName(displayName || "?"),
     role: row.role,
     email: row.email,
     departments: row.departments ?? [],

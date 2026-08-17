@@ -14,6 +14,8 @@ export type Department = string;
 export interface Employee {
   id: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   initials: string;
   role: Role;
   email: string;
