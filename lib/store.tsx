@@ -62,7 +62,15 @@ interface AppActions {
   }) => Promise<Employee>;
   updateEmployee: (id: string, patch: Record<string, unknown>) => Promise<Employee>;
   deleteEmployee: (id: string, strategy: EmployeeRemovalStrategy) => Promise<void>;
-  updateOwnAccount: (patch: { name?: string; email?: string; password?: string }) => Promise<Employee>;
+  updateOwnAccount: (patch: {
+    name?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    currentPassword?: string;
+    newPassword?: string;
+    password?: string;
+  }) => Promise<Employee>;
   deleteOwnAccount: () => Promise<void>;
 
   addProject: (input: {
@@ -101,7 +109,7 @@ type AppContextValue = AppState & AppActions & { hydrated: boolean };
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { currentUser, hydrated: authHydrated } = useAuth();
+  const { currentUser, hydrated: authHydrated, refresh: refreshAuth } = useAuth();
   const [state, setState] = useState<AppState>(emptyState);
   const [hydrated, setHydrated] = useState(false);
 
@@ -158,8 +166,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           },
           () => undefined
         ),
-      updateOwnAccount: (patch) =>
-        mutate("/api/account", { method: "PATCH", body: JSON.stringify(patch) }, (d) => d.employee),
+      updateOwnAccount: async (patch) => {
+        const employee = await mutate("/api/account", { method: "PATCH", body: JSON.stringify(patch) }, (d) => d.employee);
+        await refreshAuth();
+        return employee;
+      },
       deleteOwnAccount: () => mutate("/api/account", { method: "DELETE" }, () => undefined),
 
       addProject: (input) =>

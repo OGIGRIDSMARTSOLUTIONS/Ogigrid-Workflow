@@ -16,6 +16,8 @@ export async function POST(request: Request) {
       title: body.title,
       date: body.date,
       time: body.time ?? "09:00",
+      platform: body.platform ?? "Google Meet",
+      meetingLink: body.meetingLink || undefined,
       attendeeIds: Array.isArray(body.attendeeIds) ? body.attendeeIds : [],
       projectId: body.projectId || null,
       details: body.details ?? "",

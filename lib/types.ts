@@ -67,6 +67,8 @@ export interface Meeting {
   title: string;
   date: string; // ISO yyyy-mm-dd
   time: string; // e.g. "09:30"
+  platform?: string; // e.g. "Google Meet", "Zoom", "WhatsApp", "Microsoft Teams", "In-Person", etc.
+  meetingLink?: string; // optional URL or join link
   attendeeIds: string[];
   projectId: string | null;
   details: string;
@@ -76,7 +78,11 @@ export interface DocumentItem {
   id: string;
   name: string;
   description: string;
-  projectId: string | null;
+  projectId: string;
+  fileName?: string;
+  fileSize?: number;
+  mimeType?: string;
+  fileData?: string;
   createdAt: string; // ISO timestamp
   updatedAt: string; // ISO timestamp
 }

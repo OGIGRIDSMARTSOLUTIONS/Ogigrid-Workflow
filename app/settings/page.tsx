@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { Panel } from "@/components/ui/Panel";
@@ -17,12 +17,34 @@ export default function SettingsPage() {
   const { showToast } = useToast();
   const router = useRouter();
   const [workspaceName, setWorkspaceName] = useState("Ogigrid");
+  const [saving, setSaving] = useState(false);
+
   const [account, setAccount] = useState({
-    name: currentUser?.name ?? "",
+    firstName: currentUser?.firstName ?? "",
+    lastName: currentUser?.lastName ?? "",
     email: currentUser?.email ?? "",
-    password: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEffect(() => {
+    if (currentUser) {
+      setAccount((prev) => ({
+        ...prev,
+        firstName:
+          currentUser.firstName !== undefined
+            ? currentUser.firstName
+            : (currentUser.name ?? "").split(" ")[0] || "",
+        lastName:
+          currentUser.lastName !== undefined
+            ? currentUser.lastName
+            : (currentUser.name ?? "").split(" ").slice(1).join(" ") || "",
+        email: currentUser.email ?? "",
+      }));
+    }
+  }, [currentUser]);
 
   if (!currentUser) return null;
   const isAdmin = currentUser.role === "Admin";
@@ -33,14 +55,66 @@ export default function SettingsPage() {
 
   async function handleSaveAccount(e: React.FormEvent) {
     e.preventDefault();
+
+    const firstName = account.firstName.trim();
+    const lastName = account.lastName.trim();
+    const email = account.email.trim();
+
+    if (!firstName && !lastName) {
+      showToast("Please enter your name.", "error");
+      return;
+    }
+    if (!email) {
+      showToast("Please enter a valid email address.", "error");
+      return;
+    }
+
+    if (account.newPassword) {
+      if (!account.currentPassword) {
+        showToast("Please enter your current password to set a new password.", "error");
+        return;
+      }
+      if (account.newPassword.length < 6) {
+        showToast("New password must be at least 6 characters.", "error");
+        return;
+      }
+      if (account.newPassword !== account.confirmPassword) {
+        showToast("New passwords do not match.", "error");
+        return;
+      }
+    }
+
+    setSaving(true);
     try {
-      const patch: Record<string, string> = { name: account.name, email: account.email };
-      if (account.password.trim()) patch.password = account.password;
+      const patch: {
+        firstName: string;
+        lastName: string;
+        email: string;
+        currentPassword?: string;
+        newPassword?: string;
+      } = {
+        firstName,
+        lastName,
+        email,
+      };
+
+      if (account.newPassword) {
+        patch.currentPassword = account.currentPassword;
+        patch.newPassword = account.newPassword;
+      }
+
       await updateOwnAccount(patch);
       showToast("Account settings updated successfully.");
-      setAccount((prev) => ({ ...prev, password: "" }));
+      setAccount((prev) => ({
+        ...prev,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      }));
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Unable to update account.", "error");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -61,36 +135,91 @@ export default function SettingsPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Panel title="My Account">
           <form onSubmit={handleSaveAccount} className="space-y-4">
-            <Field label="Name">
-              <input
-                className="input"
-                value={account.name}
-                onChange={(e) => setAccount({ ...account, name: e.target.value })}
-              />
-            </Field>
-            <Field label="Email">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="First name">
+                <input
+                  className="input"
+                  value={account.firstName}
+                  onChange={(e) => setAccount({ ...account, firstName: e.target.value })}
+                  placeholder="First name"
+                  required
+                />
+              </Field>
+              <Field label="Last name">
+                <input
+                  className="input"
+                  value={account.lastName}
+                  onChange={(e) => setAccount({ ...account, lastName: e.target.value })}
+                  placeholder="Last name"
+                />
+              </Field>
+            </div>
+
+            <Field label="Email address">
               <input
                 type="email"
                 className="input"
                 value={account.email}
                 onChange={(e) => setAccount({ ...account, email: e.target.value })}
+                required
               />
             </Field>
-            <Field label="New password" hint="Leave blank to keep your current password.">
-              <input
-                type="password"
-                className="input"
-                value={account.password}
-                onChange={(e) => setAccount({ ...account, password: e.target.value })}
-              />
-            </Field>
+
+            <div className="border-t border-border/80 pt-3 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                Change Password
+              </p>
+              <Field
+                label="Current password"
+                hint="Required only if you are changing your password."
+              >
+                <input
+                  type="password"
+                  className="input"
+                  value={account.currentPassword}
+                  onChange={(e) => setAccount({ ...account, currentPassword: e.target.value })}
+                  placeholder="Enter current password"
+                />
+              </Field>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field
+                  label="New password"
+                  hint="Minimum 6 characters."
+                >
+                  <input
+                    type="password"
+                    className="input"
+                    value={account.newPassword}
+                    onChange={(e) => setAccount({ ...account, newPassword: e.target.value })}
+                    placeholder="Enter new password"
+                  />
+                </Field>
+
+                <Field label="Confirm new password">
+                  <input
+                    type="password"
+                    className="input"
+                    value={account.confirmPassword}
+                    onChange={(e) => setAccount({ ...account, confirmPassword: e.target.value })}
+                    placeholder="Confirm new password"
+                  />
+                </Field>
+              </div>
+            </div>
+
             <Field label="Role">
               <p className="pt-1.5 text-sm text-ink-muted">
                 {currentUser.role}
                 {currentUser.isPrimaryAdmin && " · Primary Administrator"}
               </p>
             </Field>
-            <PrimaryButton type="submit">Save</PrimaryButton>
+
+            <div className="pt-2">
+              <PrimaryButton type="submit" disabled={saving}>
+                {saving ? "Saving..." : "Save Account Settings"}
+              </PrimaryButton>
+            </div>
           </form>
 
           <div className="mt-6 border-t border-border pt-4">

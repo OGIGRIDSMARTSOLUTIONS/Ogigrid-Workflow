@@ -29,9 +29,9 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
 
   if (!task || !draft || !currentUser) {
     return (
-      <Panel title="Task Details" className="h-fit">
+      <Panel title="Schedule Details" className="h-fit">
         <p className="text-sm text-ink-faint">
-          Select a task to view and edit its details.
+          Select a task or meeting from the schedule to view its details.
         </p>
       </Panel>
     );

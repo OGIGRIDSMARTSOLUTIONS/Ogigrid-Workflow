@@ -1,0 +1,25 @@
+---
+description: Ogigrid Workflow architecture, permissions, and coding conventions
+alwaysApply: true
+---
+
+# Ogigrid Workflow Project Rules
+
+When writing code or adding features to this repository, follow these core guidelines:
+
+## 1. Security & Permissions
+- Every protected API route must call `requireAuth()` or `requireAdmin()` from `lib/server/guard.ts`.
+- **Project Access**: All authenticated users can see the project list, but only project members and Admins can view/open project details (`/projects/[id]`) and download project documents (`/api/documents/[id]`). Enforce this on the server.
+- **Privacy**: Personal credentials (password, email, name) can only be changed by the user themselves in `/settings`. Admins cannot edit other users' passwords or names.
+- **Passwords**: Always hash passwords using `hashPassword` from `lib/server/password.ts`. Never store plaintext.
+
+## 2. Documents
+- Every document must strictly belong to a valid `projectId`.
+
+## 3. Database & Mappers
+- Always use parameterized queries (`query('SELECT ... WHERE id = $1', [id])`) in `lib/server/repo.ts`.
+- Map raw PostgreSQL snake_case rows using `lib/server/mappers.ts` to camelCase TypeScript models.
+
+## 4. UI Standards
+- Reuse UI primitives in `components/ui/` (`Panel`, `Modal`, `FormControls`, `StatusBadge`, `DepartmentBadge`).
+- Maintain the brand palette defined in `tailwind.config.ts` and the dark navy sidebar theme in `components/layout/Sidebar.tsx`.

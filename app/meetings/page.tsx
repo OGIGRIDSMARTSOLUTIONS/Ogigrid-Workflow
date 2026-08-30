@@ -9,13 +9,15 @@ import { EmptyState, Field, PrimaryButton, SecondaryButton, DangerLink } from "@
 import { useApp } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
-import { formatDate, todayIso } from "@/lib/data";
+import { formatDate, isMeetingEnded, platformOptions, todayIso } from "@/lib/data";
 import { Meeting } from "@/lib/types";
 
 const emptyForm = {
   title: "",
   date: todayIso(),
   time: "09:00",
+  platform: "Google Meet",
+  meetingLink: "",
   attendeeIds: [] as string[],
   projectId: "",
   details: "",
@@ -53,6 +55,8 @@ export default function MeetingsPage() {
       title: meeting.title,
       date: meeting.date,
       time: meeting.time,
+      platform: meeting.platform || "Google Meet",
+      meetingLink: meeting.meetingLink || "",
       attendeeIds: meeting.attendeeIds,
       projectId: meeting.projectId ?? "",
       details: meeting.details,
@@ -124,11 +128,24 @@ export default function MeetingsPage() {
             {sortedMeetings.map((meeting) => {
               const project = projects.find((p) => p.id === meeting.projectId);
               const attendees = employees.filter((e) => meeting.attendeeIds.includes(e.id));
+              const ended = isMeetingEnded(meeting.date, meeting.time);
+
               return (
-                <Panel key={meeting.id} className="h-fit">
+                <Panel key={meeting.id} className={`h-fit ${ended ? "bg-canvas/50 opacity-80" : ""}`}>
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-ink">{meeting.title}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-ink">{meeting.title}</p>
+                        {ended ? (
+                          <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600 border border-gray-200">
+                            Ended
+                          </span>
+                        ) : (
+                          <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">
+                            Scheduled
+                          </span>
+                        )}
+                      </div>
                       <p className="mt-0.5 text-xs text-ink-faint">
                         {formatDate(meeting.date)} · {meeting.time}
                       </p>
@@ -145,16 +162,38 @@ export default function MeetingsPage() {
                       </div>
                     )}
                   </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                    <span className="inline-flex items-center gap-1 rounded bg-purple-50 border border-purple-200 px-2 py-0.5 font-medium text-purple-700">
+                      <span>📹</span> {meeting.platform || "Google Meet"}
+                    </span>
+                    {meeting.meetingLink && (
+                      <a
+                        href={
+                          meeting.meetingLink.startsWith("http")
+                            ? meeting.meetingLink
+                            : `https://${meeting.meetingLink}`
+                        }
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline"
+                      >
+                        Join link ↗
+                      </a>
+                    )}
+                  </div>
+
                   {project && (
-                    <p className="mt-2 text-xs text-ink-muted">Project: {project.name}</p>
+                    <p className="mt-2 text-xs text-ink-muted">Project: <span className="font-medium text-ink">{project.name}</span></p>
                   )}
                   {attendees.length > 0 && (
-                    <p className="mt-1 text-xs text-ink-muted">
-                      Attendees: {attendees.map((a) => a.name).join(", ")}
-                    </p>
+                    <div className="mt-2 text-xs text-ink-muted">
+                      <span className="text-ink-faint">Attendees: </span>
+                      {attendees.map((a) => a.name).join(", ")}
+                    </div>
                   )}
                   {meeting.details && (
-                    <p className="mt-2 text-sm text-ink-muted">{meeting.details}</p>
+                    <p className="mt-2 text-xs text-ink-muted whitespace-pre-wrap">{meeting.details}</p>
                   )}
                 </Panel>
               );
@@ -191,6 +230,30 @@ export default function MeetingsPage() {
                   className="input"
                   value={form.time}
                   onChange={(e) => setForm({ ...form, time: e.target.value })}
+                />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Platform (via)">
+                <select
+                  className="input"
+                  value={form.platform}
+                  onChange={(e) => setForm({ ...form, platform: e.target.value })}
+                >
+                  {platformOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Meeting Link (optional)">
+                <input
+                  className="input"
+                  value={form.meetingLink}
+                  onChange={(e) => setForm({ ...form, meetingLink: e.target.value })}
+                  placeholder="e.g. meet.google.com/xyz or Zoom URL"
                 />
               </Field>
             </div>

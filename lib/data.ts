@@ -11,7 +11,32 @@ export const statusOptions: TaskStatus[] = [
   "Blocked",
 ];
 
+export const platformOptions = [
+  "Google Meet",
+  "Zoom",
+  "WhatsApp",
+  "Microsoft Teams",
+  "Slack Huddle",
+  "In-Person",
+  "Phone Call",
+  "Other",
+];
+
 export const priorityOptions: TaskPriority[] = ["Low", "Medium", "High", "Urgent"];
+
+export function isMeetingEnded(date: string, time: string): boolean {
+  if (!date) return false;
+  const now = new Date();
+  const meetingTime = time || "00:00";
+  const [hours, minutes] = meetingTime.split(":").map(Number);
+  const meetingDate = new Date(`${date}T00:00:00`);
+  meetingDate.setHours(hours || 0, minutes || 0, 0, 0);
+
+  // Assuming a standard meeting duration buffer of ~45 minutes after start time
+  // If the meeting time + 45 minutes is before now, it is considered ended
+  const endedThresholdMs = meetingDate.getTime() + 45 * 60 * 1000;
+  return now.getTime() > endedThresholdMs;
+}
 
 export function makeId(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;

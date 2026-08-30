@@ -60,6 +60,10 @@ export async function findEmployeeByEmail(email: string) {
   return queryOne<any>(`SELECT * FROM employees WHERE lower(email) = lower($1)`, [email]);
 }
 
+export async function findEmployeeById(id: string) {
+  return queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [id]);
+}
+
 export async function countEmployees() {
   const row = await queryOne<{ count: string }>(`SELECT count(*)::text FROM employees`);
   return Number(row?.count ?? 0);
@@ -632,6 +636,8 @@ export async function createMeeting(
     title: string;
     date: string;
     time: string;
+    platform?: string;
+    meetingLink?: string;
     attendeeIds: string[];
     projectId: string | null;
     details: string;
@@ -639,8 +645,17 @@ export async function createMeeting(
   actorId: string
 ) {
   const row = await queryOne<any>(
-    `INSERT INTO meetings (title, date, time, project_id, details) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-    [input.title, input.date, input.time, input.projectId, input.details]
+    `INSERT INTO meetings (title, date, time, platform, meeting_link, project_id, details)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [
+      input.title,
+      input.date,
+      input.time,
+      input.platform || "Google Meet",
+      input.meetingLink || null,
+      input.projectId,
+      input.details,
+    ]
   );
   for (const employeeId of input.attendeeIds) {
     await query(
@@ -649,12 +664,13 @@ export async function createMeeting(
     );
   }
   await logActivity(`Meeting "${row.title}" was scheduled.`);
+  const platformText = input.platform ? ` via ${input.platform}` : "";
   for (const employeeId of input.attendeeIds.filter((a) => a !== actorId)) {
     await notify(
       employeeId,
       "meeting",
       "Meeting scheduled",
-      `You were invited to "${row.title}" on ${input.date} at ${input.time}.`,
+      `You were invited to "${row.title}" on ${input.date} at ${input.time}${platformText}.`,
       "meeting",
       row.id
     );
@@ -668,6 +684,8 @@ export async function updateMeeting(
     title: string;
     date: string;
     time: string;
+    platform: string;
+    meetingLink?: string;
     attendeeIds: string[];
     projectId: string | null;
     details: string;
@@ -677,11 +695,18 @@ export async function updateMeeting(
   const existing = await queryOne<any>(`SELECT * FROM meetings WHERE id = $1`, [id]);
   if (!existing) return null;
   const row = await queryOne<any>(
-    `UPDATE meetings SET title=$1, date=$2, time=$3, project_id=$4, details=$5 WHERE id=$6 RETURNING *`,
+    `UPDATE meetings SET
+       title=$1, date=$2, time=$3,
+       platform=COALESCE($4, platform),
+       meeting_link=$5,
+       project_id=$6, details=$7
+     WHERE id=$8 RETURNING *`,
     [
       patch.title ?? existing.title,
       patch.date ?? existing.date,
       patch.time ?? existing.time,
+      patch.platform !== undefined ? patch.platform : null,
+      patch.meetingLink !== undefined ? patch.meetingLink || null : existing.meeting_link,
       patch.projectId !== undefined ? patch.projectId : existing.project_id,
       patch.details ?? existing.details,
       id,
@@ -734,10 +759,32 @@ export async function listDocuments() {
   return rows.map(mapDocument);
 }
 
-export async function createDocument(input: { name: string; description: string; projectId: string | null }) {
+export async function findDocumentById(id: string) {
+  const row = await queryOne<any>(`SELECT * FROM documents WHERE id = $1`, [id]);
+  return row ? mapDocument(row) : null;
+}
+
+export async function createDocument(input: {
+  name: string;
+  description: string;
+  projectId: string;
+  fileName?: string;
+  fileData?: string;
+  fileSize?: number;
+  mimeType?: string;
+}) {
   const row = await queryOne<any>(
-    `INSERT INTO documents (name, description, project_id) VALUES ($1,$2,$3) RETURNING *`,
-    [input.name, input.description, input.projectId]
+    `INSERT INTO documents (name, description, project_id, file_name, file_data, file_size, mime_type)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [
+      input.name,
+      input.description,
+      input.projectId,
+      input.fileName || null,
+      input.fileData || null,
+      input.fileSize || null,
+      input.mimeType || null,
+    ]
   );
   await logActivity(`Document "${row.name}" was added.`);
   return mapDocument(row);
@@ -745,16 +792,35 @@ export async function createDocument(input: { name: string; description: string;
 
 export async function updateDocument(
   id: string,
-  patch: Partial<{ name: string; description: string; projectId: string | null }>
+  patch: Partial<{
+    name: string;
+    description: string;
+    projectId: string;
+    fileName?: string;
+    fileData?: string;
+    fileSize?: number;
+    mimeType?: string;
+  }>
 ) {
   const existing = await queryOne<any>(`SELECT * FROM documents WHERE id = $1`, [id]);
   if (!existing) return null;
   const row = await queryOne<any>(
-    `UPDATE documents SET name=$1, description=$2, project_id=$3, updated_at=now() WHERE id=$4 RETURNING *`,
+    `UPDATE documents SET
+       name=$1, description=$2, project_id=$3,
+       file_name=COALESCE($4, file_name),
+       file_data=COALESCE($5, file_data),
+       file_size=COALESCE($6, file_size),
+       mime_type=COALESCE($7, mime_type),
+       updated_at=now()
+     WHERE id=$8 RETURNING *`,
     [
       patch.name ?? existing.name,
       patch.description ?? existing.description,
       patch.projectId !== undefined ? patch.projectId : existing.project_id,
+      patch.fileName !== undefined ? patch.fileName : null,
+      patch.fileData !== undefined ? patch.fileData : null,
+      patch.fileSize !== undefined ? patch.fileSize : null,
+      patch.mimeType !== undefined ? patch.mimeType : null,
       id,
     ]
   );

@@ -15,6 +15,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       title: body.title,
       date: body.date,
       time: body.time,
+      platform: body.platform,
+      meetingLink: body.meetingLink,
       attendeeIds: body.attendeeIds,
       projectId: body.projectId !== undefined ? body.projectId || null : undefined,
       details: body.details,

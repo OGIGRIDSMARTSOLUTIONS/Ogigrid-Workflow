@@ -10,6 +10,7 @@ import { useApp, EmployeeRemovalStrategy } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
 import { departmentSuggestions } from "@/lib/data";
+import { DepartmentBadge } from "@/components/ui/StatusBadge";
 import { Employee, EmployeeStatus, Role } from "@/lib/types";
 
 const emptyForm = {
@@ -75,21 +76,23 @@ export default function EmployeesPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name.trim() || !form.email.trim()) return;
     setSubmitting(true);
     try {
       if (editingId) {
+        // Admin updates workspace-level attributes only
         const patch: Record<string, unknown> = {
-          name: form.name,
-          email: form.email,
           departments: form.departments,
           status: form.status,
           role: form.accountRole,
         };
-        if (form.password.trim()) patch.password = form.password;
         await updateEmployee(editingId, patch);
-        showToast("Employee updated successfully.");
+        showToast("Employee workspace details updated successfully.");
       } else {
+        if (!form.name.trim() || !form.email.trim()) {
+          showToast("Name and email are required.", "error");
+          setSubmitting(false);
+          return;
+        }
         if (!form.password.trim()) {
           showToast("A temporary password is required.", "error");
           setSubmitting(false);
@@ -204,8 +207,16 @@ export default function EmployeesPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-ink-muted">
-                      {employee.departments.length ? employee.departments.join(", ") : "—"}
+                    <td className="px-4 py-3">
+                      {employee.departments.length ? (
+                        <div className="flex flex-wrap gap-1">
+                          {employee.departments.map((dept) => (
+                            <DepartmentBadge key={dept} name={dept} />
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-ink-faint">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-ink-muted">{employee.email || "—"}</td>
                     <td className="px-4 py-3">
@@ -251,39 +262,56 @@ export default function EmployeesPage() {
       </div>
 
       {modalOpen && (
-        <Modal title={editingId ? "Edit Employee" : "Add Employee"} onClose={() => setModalOpen(false)}>
+        <Modal title={editingId ? "Edit Workspace Role & Departments" : "Add Employee"} onClose={() => setModalOpen(false)}>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Field label="Name">
-              <input
-                className="input"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required
-                autoFocus
-              />
-            </Field>
-            <Field label="Email">
-              <input
-                type="email"
-                className="input"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="name@ogigrid.com"
-                required
-              />
-            </Field>
-            <Field
-              label={editingId ? "New password" : "Temporary password"}
-              hint={editingId ? "Leave blank to keep their current password." : "Used by this employee to log in."}
-            >
-              <input
-                type="text"
-                className="input"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required={!editingId}
-              />
-            </Field>
+            {editingId ? (
+              <div className="rounded-md border border-border bg-canvas/60 p-3 text-xs text-ink-muted space-y-1.5">
+                <p>
+                  <strong className="text-ink font-medium">Employee:</strong> {form.name}
+                </p>
+                <p>
+                  <strong className="text-ink font-medium">Email:</strong> {form.email}
+                </p>
+                <p className="text-[11px] text-ink-faint pt-1 border-t border-border">
+                  ℹ️ Personal details (name, email, password) are managed directly by each employee in their Account Settings.
+                </p>
+              </div>
+            ) : (
+              <>
+                <Field label="Name">
+                  <input
+                    className="input"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    required
+                    autoFocus
+                  />
+                </Field>
+                <Field label="Email">
+                  <input
+                    type="email"
+                    className="input"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    placeholder="name@ogigrid.com"
+                    required
+                  />
+                </Field>
+                <Field
+                  label="Temporary password"
+                  hint="Used by this employee to log in for the first time."
+                >
+                  <input
+                    type="text"
+                    className="input"
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    required
+                  />
+                </Field>
+              </>
+            )}
+
             <Field label="Account role">
               <select
                 className="input"

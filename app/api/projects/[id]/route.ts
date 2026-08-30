@@ -1,6 +1,29 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/server/guard";
-import { deleteProject, updateProject } from "@/lib/server/repo";
+import { requireAdmin, requireAuth } from "@/lib/server/guard";
+import { deleteProject, listProjects, updateProject } from "@/lib/server/repo";
+
+export async function GET(request: Request, { params }: { params: { id: string } }) {
+  const { user, error } = await requireAuth();
+  if (error) return error;
+
+  const projects = await listProjects();
+  const project = projects.find((p) => p.id === params.id);
+  if (!project) {
+    return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  }
+
+  const isAdmin = user!.role === "Admin";
+  const isMember = project.memberIds.includes(user!.id);
+
+  if (!isAdmin && !isMember) {
+    return NextResponse.json(
+      { error: "Access denied. You are not a member of this project." },
+      { status: 403 }
+    );
+  }
+
+  return NextResponse.json({ project });
+}
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const { error } = await requireAdmin();

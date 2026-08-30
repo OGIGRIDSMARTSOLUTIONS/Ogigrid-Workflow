@@ -25,18 +25,20 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-screen w-60 flex-shrink-0 flex-col border-r border-border bg-panel">
-      <div className="flex items-center gap-2 border-b border-border px-5 py-5">
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-sm">
-          <Image src="/ogigrid-logo.jpg" alt="Ogigrid" width={32} height={32} className="h-full w-full object-cover" />
+    <aside className="flex h-screen w-64 flex-shrink-0 flex-col bg-[#0B1120] text-slate-300 shadow-xl border-r border-slate-800">
+      {/* Brand Header */}
+      <div className="flex items-center gap-3 border-b border-slate-800/80 px-6 py-5 bg-[#070D19]">
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg shadow-md ring-1 ring-white/10">
+          <Image src="/ogigrid-logo.jpg" alt="Ogigrid" width={40} height={40} className="h-full w-full object-cover" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-ink">OGIGRID</p>
-          <p className="text-xs text-ink-faint">Workflow</p>
+          <p className="text-base font-bold tracking-tight text-white">OGIGRID</p>
+          <p className="text-xs font-medium text-blue-400">Workflow Suite</p>
         </div>
       </div>
 
-      <nav className="flex-1 space-y-0.5 px-3 py-4">
+      {/* Navigation */}
+      <nav className="flex-1 space-y-1 px-3 py-5">
         {navItems.map((item) => {
           const isActive = pathname?.startsWith(item.href);
 
@@ -44,10 +46,10 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center rounded-sm px-3 py-2 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-all ${
                 isActive
-                  ? "bg-brand-50 text-brand-700"
-                  : "text-ink-muted hover:bg-canvas hover:text-ink"
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold shadow-md shadow-blue-500/20"
+                  : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
               }`}
             >
               {item.label}
@@ -56,8 +58,14 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t border-border px-5 py-4">
-        <p className="text-xs text-ink-faint">Ogigrid Workflow · MVP</p>
+      {/* Footer */}
+      <div className="border-t border-slate-800/80 px-6 py-4 bg-[#070D19]/60">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-medium text-slate-400">Ogigrid Workflow</p>
+          <span className="inline-flex items-center rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-semibold text-blue-300 border border-blue-500/30">
+            Active
+          </span>
+        </div>
       </div>
     </aside>
   );

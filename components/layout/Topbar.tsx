@@ -57,7 +57,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
               setUserOpen((v) => !v);
               setNotifOpen(false);
             }}
-            className="flex h-8 w-8 items-center justify-center rounded-sm bg-brand-100 text-xs font-semibold text-brand-700"
+            className="flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-tr from-blue-600 to-indigo-600 text-xs font-bold text-white shadow-sm ring-2 ring-white"
           >
             {currentUser?.initials ?? "?"}
           </button>

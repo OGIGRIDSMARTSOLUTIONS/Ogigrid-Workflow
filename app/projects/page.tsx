@@ -22,6 +22,25 @@ const emptyForm = {
   memberIds: [] as string[],
 };
 
+export function LockIcon({ className = "h-3.5 w-3.5 text-ink-faint" }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-label="Locked"
+    >
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
+
 export default function ProjectsPage() {
   const { projects, tasks, employees, addProject } = useApp();
   const { currentUser } = useAuth();
@@ -32,9 +51,8 @@ export default function ProjectsPage() {
   if (!currentUser) return null;
   const isAdmin = currentUser.role === "Admin";
 
-  const visibleProjects = isAdmin
-    ? projects
-    : projects.filter((p) => p.memberIds.includes(currentUser.id));
+  // Every authenticated employee can see all workspace projects.
+  const allProjects = projects;
 
   function projectProgress(projectId: string) {
     const projectTasks = tasks.filter((t) => t.projectId === projectId);
@@ -66,27 +84,23 @@ export default function ProjectsPage() {
   return (
     <AppShell
       title="Projects"
-      subtitle={
-        isAdmin
-          ? "Track company projects, people, tasks and progress."
-          : "Projects you're a member of."
-      }
+      subtitle="Track company projects, people, tasks and progress across the workspace."
     >
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <p className="text-sm text-ink-muted">
-            {visibleProjects.length} {visibleProjects.length === 1 ? "project" : "projects"}
+            {allProjects.length} {allProjects.length === 1 ? "project" : "projects"}
           </p>
           {isAdmin && <PrimaryButton onClick={() => setModalOpen(true)}>+ New Project</PrimaryButton>}
         </div>
 
-        {visibleProjects.length === 0 ? (
+        {allProjects.length === 0 ? (
           <EmptyState
             title="No projects yet"
             description={
               isAdmin
                 ? "Create your first project to start organizing tasks, schedules and progress."
-                : "You haven't been added to any projects yet."
+                : "No projects have been created in the workspace yet."
             }
             action={
               isAdmin ? (
@@ -102,24 +116,38 @@ export default function ProjectsPage() {
                   <th className="px-4 py-2 font-medium">Project</th>
                   <th className="px-4 py-2 font-medium">Status</th>
                   <th className="px-4 py-2 font-medium">Progress</th>
+                  <th className="px-4 py-2 font-medium">Access</th>
                   <th className="px-4 py-2 font-medium">Members</th>
                   <th className="px-4 py-2 font-medium">Start</th>
                   <th className="px-4 py-2 font-medium">Deadline</th>
                 </tr>
               </thead>
               <tbody>
-                {visibleProjects.map((project) => {
+                {allProjects.map((project) => {
                   const progress = projectProgress(project.id);
                   const members = employees.filter((e) => project.memberIds.includes(e.id));
+                  const hasAccess = isAdmin || project.memberIds.includes(currentUser.id);
+
                   return (
-                    <tr key={project.id} className="border-b border-border last:border-0">
+                    <tr
+                      key={project.id}
+                      className={`border-b border-border last:border-0 ${
+                        !hasAccess ? "bg-canvas/40" : ""
+                      }`}
+                    >
                       <td className="px-4 py-3">
-                        <Link
-                          href={`/projects/${project.id}`}
-                          className="font-medium text-ink hover:text-brand-600 hover:underline"
-                        >
-                          {project.name}
-                        </Link>
+                        {hasAccess ? (
+                          <Link
+                            href={`/projects/${project.id}`}
+                            className="font-medium text-ink hover:text-brand-600 hover:underline inline-flex items-center gap-1.5"
+                          >
+                            {project.name}
+                          </Link>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-ink-muted cursor-not-allowed">
+                            <span className="font-medium">{project.name}</span>
+                          </div>
+                        )}
                         {project.description && (
                           <p className="mt-0.5 max-w-xs truncate text-xs text-ink-faint">
                             {project.description}
@@ -131,14 +159,33 @@ export default function ProjectsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="h-1.5 w-24 overflow-hidden rounded-sm bg-canvas">
+                          <div className="h-2 w-24 overflow-hidden rounded-full bg-canvas border border-border/60">
                             <div
-                              className="h-full bg-brand-500"
+                              className={`h-full rounded-full transition-all ${
+                                progress === 100 ? "bg-emerald-500" : "bg-brand-500"
+                              }`}
                               style={{ width: `${progress}%` }}
                             />
                           </div>
-                          <span className="text-xs text-ink-muted">{progress}%</span>
+                          <span className="text-xs font-medium text-ink-muted">{progress}%</span>
                         </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {hasAccess ? (
+                          <span className="inline-flex items-center rounded-sm bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
+                            {isAdmin && !project.memberIds.includes(currentUser.id)
+                              ? "Admin Access"
+                              : "Member"}
+                          </span>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-sm bg-canvas border border-border px-2 py-0.5 text-xs font-medium text-ink-faint"
+                            title="You are not a member of this project"
+                          >
+                            <LockIcon />
+                            Locked
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-ink-muted">
                         {members.length ? members.map((m) => m.name).join(", ") : "—"}
