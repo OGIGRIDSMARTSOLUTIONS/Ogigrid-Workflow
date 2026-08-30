@@ -13,11 +13,11 @@ export function ActivityPanel({ activity }: { activity: ActivityItem[] }) {
       ) : (
         <ul className="space-y-3">
           {activity.map((item) => (
-            <li key={item.id} className="flex gap-2">
-              <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-500" />
-              <div>
+            <li key={item.id} className="flex gap-2.5 border-b border-border/50 pb-2.5 last:border-0 last:pb-0">
+              <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-blue-600 ring-2 ring-blue-100" />
+              <div className="min-w-0 flex-1">
                 <p className="text-sm text-ink">{item.description}</p>
-                <p className="text-xs text-ink-faint">{formatDateTime(item.timestamp)}</p>
+                <p className="text-[11px] text-ink-faint mt-0.5">{formatDateTime(item.timestamp)}</p>
               </div>
             </li>
           ))}

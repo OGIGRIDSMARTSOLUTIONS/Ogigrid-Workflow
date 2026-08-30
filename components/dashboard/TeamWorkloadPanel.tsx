@@ -14,12 +14,16 @@ interface TeamWorkloadPanelProps {
   projects: Project[];
 }
 
-export function TeamWorkloadPanel({ employees, tasks, projects }: TeamWorkloadPanelProps) {
+export function TeamWorkloadPanel({
+  employees,
+  tasks,
+  projects,
+}: TeamWorkloadPanelProps) {
   const { currentUser } = useAuth();
   const isAdmin = currentUser?.role === "Admin";
   const [search, setSearch] = useState("");
   const [selectedDept, setSelectedDept] = useState<string>("All");
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState<"active" | "all" | "blocked">("active");
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<"active" | "all" | "blocked" | "overdue">("active");
 
   const activeEmployees = useMemo(
     () => employees.filter((e) => e.status === "Active"),
@@ -77,6 +81,7 @@ export function TeamWorkloadPanel({ employees, tasks, projects }: TeamWorkloadPa
         const relevantTasks = empTasks.filter((t) => {
           if (selectedStatusFilter === "active" && t.status === "Completed") return false;
           if (selectedStatusFilter === "blocked" && t.status !== "Blocked") return false;
+          if (selectedStatusFilter === "overdue" && !isOverdue(t.deadline, t.status)) return false;
           return true;
         });
 
@@ -113,6 +118,7 @@ export function TeamWorkloadPanel({ employees, tasks, projects }: TeamWorkloadPa
           activeCount: empTasks.filter((t) => t.status !== "Completed").length,
           completedCount: empTasks.filter((t) => t.status === "Completed").length,
           blockedCount: empTasks.filter((t) => t.status === "Blocked").length,
+          overdueCount: empTasks.filter((t) => isOverdue(t.deadline, t.status)).length,
           projectGroups,
           relevantTasks,
           matchesSearch,
@@ -154,9 +160,9 @@ export function TeamWorkloadPanel({ employees, tasks, projects }: TeamWorkloadPa
             <span className="text-ink-faint mr-1 font-medium">Show:</span>
             <button
               onClick={() => setSelectedStatusFilter("active")}
-              className={`rounded-sm px-2.5 py-1 font-medium transition-colors ${
+              className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
                 selectedStatusFilter === "active"
-                  ? "bg-brand-600 text-white"
+                  ? "bg-[#0B1120] text-white shadow-sm"
                   : "bg-panel text-ink-muted border border-border hover:bg-canvas"
               }`}
             >
@@ -164,19 +170,29 @@ export function TeamWorkloadPanel({ employees, tasks, projects }: TeamWorkloadPa
             </button>
             <button
               onClick={() => setSelectedStatusFilter("blocked")}
-              className={`rounded-sm px-2.5 py-1 font-medium transition-colors ${
+              className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
                 selectedStatusFilter === "blocked"
-                  ? "bg-brand-600 text-white"
+                  ? "bg-amber-700 text-white shadow-sm"
                   : "bg-panel text-ink-muted border border-border hover:bg-canvas"
               }`}
             >
               Blocked
             </button>
             <button
+              onClick={() => setSelectedStatusFilter("overdue")}
+              className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+                selectedStatusFilter === "overdue"
+                  ? "bg-rose-700 text-white shadow-sm"
+                  : "bg-panel text-ink-muted border border-border hover:bg-canvas"
+              }`}
+            >
+              Overdue
+            </button>
+            <button
               onClick={() => setSelectedStatusFilter("all")}
-              className={`rounded-sm px-2.5 py-1 font-medium transition-colors ${
+              className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
                 selectedStatusFilter === "all"
-                  ? "bg-brand-600 text-white"
+                  ? "bg-[#0B1120] text-white shadow-sm"
                   : "bg-panel text-ink-muted border border-border hover:bg-canvas"
               }`}
             >
@@ -192,14 +208,14 @@ export function TeamWorkloadPanel({ employees, tasks, projects }: TeamWorkloadPa
           </p>
         ) : (
           <div className="space-y-4">
-            {filteredData.map(({ employee, activeCount, blockedCount, projectGroups, relevantTasks }) => {
+            {filteredData.map(({ employee, activeCount, blockedCount, overdueCount, projectGroups, relevantTasks }) => {
               const avatarColors = [
-                "bg-blue-100 text-blue-700 border-blue-200",
-                "bg-indigo-100 text-indigo-700 border-indigo-200",
-                "bg-purple-100 text-purple-700 border-purple-200",
-                "bg-teal-100 text-teal-700 border-teal-200",
-                "bg-amber-100 text-amber-800 border-amber-200",
-                "bg-rose-100 text-rose-700 border-rose-200",
+                "bg-[#0B1120] text-blue-300 border-slate-700",
+                "bg-blue-600 text-white border-blue-500",
+                "bg-indigo-700 text-indigo-100 border-indigo-600",
+                "bg-slate-800 text-slate-100 border-slate-700",
+                "bg-sky-700 text-white border-sky-600",
+                "bg-[#0F172A] text-slate-200 border-slate-700",
               ];
               // Pick deterministic color based on employee name length/id
               const colorIdx = (employee.name.charCodeAt(0) + employee.id.charCodeAt(0)) % avatarColors.length;
@@ -254,8 +270,13 @@ export function TeamWorkloadPanel({ employees, tasks, projects }: TeamWorkloadPa
                       <strong className="text-ink font-semibold">{activeCount}</strong> active{" "}
                       {activeCount === 1 ? "task" : "tasks"}
                     </span>
+                    {overdueCount > 0 && (
+                      <span className="inline-flex items-center rounded-sm bg-rose-50 border border-rose-200 px-2 py-0.5 text-xs font-semibold text-rose-700">
+                        {overdueCount} overdue
+                      </span>
+                    )}
                     {blockedCount > 0 && (
-                      <span className="inline-flex items-center rounded-sm bg-status-notsubmittedBg px-2 py-0.5 text-xs font-semibold text-status-notsubmitted">
+                      <span className="inline-flex items-center rounded-sm bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-semibold text-amber-800">
                         {blockedCount} blocked
                       </span>
                     )}
@@ -266,21 +287,21 @@ export function TeamWorkloadPanel({ employees, tasks, projects }: TeamWorkloadPa
                 <div className="mt-3">
                   {relevantTasks.length === 0 ? (
                     <p className="text-xs text-ink-faint italic py-1">
-                      No {selectedStatusFilter === "blocked" ? "blocked" : "active"} tasks assigned.
+                      No {selectedStatusFilter === "blocked" ? "blocked" : selectedStatusFilter === "overdue" ? "overdue" : "active"} tasks assigned.
                     </p>
                   ) : (
                     <div className="space-y-3">
                       {projectGroups.map(({ project, tasks: groupTasks }) => (
-                        <div key={project?.id ?? "unknown"} className="rounded-sm bg-canvas/60 p-2.5">
+                        <div key={project?.id ?? "unknown"} className="rounded-md border border-slate-200/80 bg-slate-50/50 p-3 space-y-2">
                           {/* Project Header Tag */}
-                          <div className="mb-2 flex items-center justify-between text-xs">
+                          <div className="flex items-center justify-between text-xs pb-1 border-b border-slate-200/60">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-semibold text-ink-muted">Project:</span>
+                              <span className="font-bold text-slate-600 uppercase text-[10px] tracking-wider">📁 Project:</span>
                               {project ? (
                                 isAdmin || (currentUser && project.memberIds.includes(currentUser.id)) ? (
                                   <Link
                                     href={`/projects/${project.id}`}
-                                    className="font-medium text-brand-600 hover:underline"
+                                    className="font-semibold text-brand-600 hover:underline"
                                   >
                                     {project.name}
                                   </Link>
@@ -311,7 +332,7 @@ export function TeamWorkloadPanel({ employees, tasks, projects }: TeamWorkloadPa
                               return (
                                 <div
                                   key={task.id}
-                                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded border border-border/80 bg-panel px-3 py-2 text-sm"
+                                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-md border border-border/80 bg-panel px-3 py-2 text-sm shadow-subtle hover:border-slate-300 transition-all"
                                 >
                                   <div className="flex items-center gap-2 min-w-0">
                                     <Link

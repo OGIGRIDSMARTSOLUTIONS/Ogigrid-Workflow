@@ -190,11 +190,38 @@ export default function EmployeeProfilePage() {
                     .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
                     .slice(0, 10)
                     .map((report) => (
-                      <li key={report.id} className="border-b border-border pb-3 last:border-0 last:pb-0">
-                        <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">
-                          {formatDate(report.date)}
-                        </p>
-                        <p className="mt-1 text-sm text-ink-muted">{report.workedOn || "—"}</p>
+                      <li key={report.id} className="border-b border-border pb-3 last:border-0 last:pb-0 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-ink">
+                            📅 {formatDate(report.date)}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 text-xs">
+                          {report.workedOn && (
+                            <p className="text-ink-muted">
+                              <strong className="text-ink font-medium">🔨 Worked on: </strong>
+                              {report.workedOn}
+                            </p>
+                          )}
+                          {report.completed && (
+                            <p className="text-ink-muted">
+                              <strong className="text-emerald-700 font-medium">✅ Completed: </strong>
+                              {report.completed}
+                            </p>
+                          )}
+                          {report.remaining && (
+                            <p className="text-ink-muted">
+                              <strong className="text-blue-700 font-medium">⏳ Next: </strong>
+                              {report.remaining}
+                            </p>
+                          )}
+                          {report.blockers && (
+                            <p className="text-rose-700 font-medium bg-rose-50 p-1.5 rounded border border-rose-200/60">
+                              <strong>🚫 Blockers: </strong>
+                              {report.blockers}
+                            </p>
+                          )}
+                        </div>
                       </li>
                     ))}
                 </ul>

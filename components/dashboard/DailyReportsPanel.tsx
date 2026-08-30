@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { Panel } from "@/components/ui/Panel";
 import { SubmissionBadge } from "@/components/ui/StatusBadge";
@@ -19,8 +18,6 @@ export function DailyReportsPanel({
   dailyReports = [],
   today = "",
 }: DailyReportsPanelProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
   const submittedCount = employees.filter((e) => submittedIds.has(e.id)).length;
 
   return (
@@ -50,11 +47,12 @@ export function DailyReportsPanel({
       ) : (
         <ul className="space-y-3">
           {employees.map((employee) => {
-            const hasSubmitted = submittedIds.has(employee.id);
-            const report = dailyReports.find(
-              (r) => r.employeeId === employee.id && (today ? r.date === today : true)
-            );
-            const isExpanded = expandedId === employee.id;
+            // Find report submitted today, or fallback to their most recent submitted report
+            const report =
+              dailyReports
+                .filter((r) => r.employeeId === employee.id)
+                .sort((a, b) => (b.date + b.submittedAt).localeCompare(a.date + a.submittedAt))[0];
+            const hasSubmitted = submittedIds.has(employee.id) || !!report;
 
             return (
               <li
@@ -63,55 +61,44 @@ export function DailyReportsPanel({
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-brand-100 text-[10px] font-bold text-brand-700">
+                    <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#0B1120] text-[10px] font-bold text-blue-300 ring-1 ring-slate-700">
                       {employee.initials}
                     </div>
                     <span className="text-sm font-medium text-ink truncate">{employee.name}</span>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     <SubmissionBadge submitted={hasSubmitted} />
-                    {hasSubmitted && report?.workedOn && (
-                      <button
-                        type="button"
-                        onClick={() => setExpandedId(isExpanded ? null : employee.id)}
-                        className="text-[11px] text-brand-600 hover:underline ml-1 font-medium"
-                      >
-                        {isExpanded ? "Hide" : "Details"}
-                      </button>
-                    )}
                   </div>
                 </div>
 
                 {hasSubmitted && report && (
-                  <div className="mt-1.5 pl-8 text-xs">
-                    {report.workedOn && (
-                      <p className="text-ink-muted line-clamp-2">
-                        <strong className="text-ink-faint font-medium">Worked on: </strong>
-                        {report.workedOn}
-                      </p>
-                    )}
-                    {isExpanded && (
-                      <div className="mt-2 space-y-1 rounded bg-canvas/70 p-2 text-xs border border-border/60">
-                        {report.completed && (
-                          <p className="text-ink-muted">
-                            <strong className="text-emerald-700 font-medium">Completed: </strong>
-                            {report.completed}
-                          </p>
-                        )}
-                        {report.remaining && (
-                          <p className="text-ink-muted">
-                            <strong className="text-brand-700 font-medium">Remaining: </strong>
-                            {report.remaining}
-                          </p>
-                        )}
-                        {report.blockers && (
-                          <p className="text-ink-muted">
-                            <strong className="text-status-notsubmitted font-medium">Blockers: </strong>
-                            {report.blockers}
-                          </p>
-                        )}
-                      </div>
-                    )}
+                  <div className="mt-2 pl-8 text-xs space-y-2">
+                    <div className="rounded-md bg-canvas/80 p-2.5 text-xs border border-border/80 space-y-1.5">
+                      {report.workedOn && (
+                        <div>
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-ink-muted block">🔨 Worked on</span>
+                          <p className="text-ink whitespace-pre-wrap">{report.workedOn}</p>
+                        </div>
+                      )}
+                      {report.completed && (
+                        <div>
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-700 block">✅ Completed</span>
+                          <p className="text-ink whitespace-pre-wrap">{report.completed}</p>
+                        </div>
+                      )}
+                      {report.remaining && (
+                        <div>
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-blue-700 block">⏳ Next Steps</span>
+                          <p className="text-ink whitespace-pre-wrap">{report.remaining}</p>
+                        </div>
+                      )}
+                      {report.blockers && (
+                        <div className="rounded bg-rose-50/70 p-1.5 border border-rose-200/60 mt-1">
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-rose-700 block">🚫 Blockers</span>
+                          <p className="text-rose-950 font-medium whitespace-pre-wrap">{report.blockers}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </li>

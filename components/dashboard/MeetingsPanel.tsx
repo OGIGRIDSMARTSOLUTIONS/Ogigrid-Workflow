@@ -62,14 +62,14 @@ export function MeetingsPanel({
                     </div>
 
                     {attendees.length > 0 && (
-                      <div className="mt-1.5 flex items-center gap-1 flex-wrap">
+                      <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
                         <span className="text-[11px] text-ink-faint">Attendees:</span>
                         <div className="flex items-center -space-x-1 overflow-hidden">
                           {attendees.slice(0, 4).map((a) => (
                             <span
                               key={a.id}
                               title={a.name}
-                              className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-brand-700 ring-2 ring-panel"
+                              className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#0B1120] text-[9px] font-bold text-blue-300 ring-2 ring-panel"
                             >
                               {a.initials}
                             </span>
@@ -94,7 +94,7 @@ export function MeetingsPanel({
                         }
                         target="_blank"
                         rel="noreferrer"
-                        className="mt-1 inline-block text-[11px] font-medium text-brand-600 hover:underline"
+                        className="mt-1 inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100 transition-colors"
                       >
                         Join ↗
                       </a>

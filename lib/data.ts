@@ -119,6 +119,11 @@ export function isOverdue(deadlineIso: string, status: TaskStatus) {
   return deadlineIso < todayIso();
 }
 
+export function isAfter6pm(): boolean {
+  const now = new Date();
+  return now.getHours() >= 18;
+}
+
 // Project progress is derived strictly from how many of its tasks are
 // Completed — not from each task's individual progress slider — so it
 // matches the simple "X of Y tasks completed" mental model.

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useApp } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
+import { isAfter6pm, todayIso } from "@/lib/data";
 import { SearchBar } from "./SearchBar";
 import { NotificationsPanel } from "./NotificationsPanel";
 import { UserMenu } from "./UserMenu";
@@ -13,14 +14,23 @@ interface TopbarProps {
 }
 
 export function Topbar({ title, subtitle }: TopbarProps) {
-  const { notifications } = useApp();
+  const { notifications, dailyReports } = useApp();
   const { currentUser } = useAuth();
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
 
-  const unreadCount = currentUser
+  const today = todayIso();
+  const after6pm = isAfter6pm();
+  const hasSubmittedToday = currentUser
+    ? dailyReports.some((r) => r.employeeId === currentUser.id && r.date === today)
+    : true;
+  const needsStandupReminder = after6pm && !hasSubmittedToday;
+
+  const dbUnreadCount = currentUser
     ? notifications.filter((n) => n.userId === currentUser.id && !n.read).length
     : 0;
+
+  const totalUnreadCount = dbUnreadCount + (needsStandupReminder ? 1 : 0);
 
   return (
     <header className="flex items-center justify-between border-b border-border bg-panel px-6 py-4">
@@ -42,9 +52,9 @@ export function Topbar({ title, subtitle }: TopbarProps) {
             className="relative flex h-8 w-8 items-center justify-center rounded-sm border border-border bg-panel text-ink-muted hover:bg-canvas"
           >
             🔔
-            {unreadCount > 0 && (
+            {totalUnreadCount > 0 && (
               <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-status-notsubmitted px-1 text-[10px] font-semibold text-white">
-                {unreadCount > 9 ? "9+" : unreadCount}
+                {totalUnreadCount > 9 ? "9+" : totalUnreadCount}
               </span>
             )}
           </button>

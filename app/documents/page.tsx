@@ -155,6 +155,34 @@ export default function DocumentsPage() {
     }
   }
 
+  async function handleDownloadDocument(doc: DocumentItem) {
+    try {
+      const res = await fetch(`/api/documents/${doc.id}`);
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Unable to access document.");
+      }
+      const fetchedDoc = data.document;
+      if (fetchedDoc.fileData) {
+        // Create a blob URL from data URL or download directly
+        const resBlob = await fetch(fetchedDoc.fileData);
+        const blob = await resBlob.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fetchedDoc.fileName || fetchedDoc.name || "download";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } else {
+        showToast("No binary file attached to this record.", "error");
+      }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Access denied.", "error");
+    }
+  }
+
   async function handleViewDocument(doc: DocumentItem) {
     try {
       // Securely fetch file data from backend
@@ -165,22 +193,11 @@ export default function DocumentsPage() {
       }
       const fetchedDoc = data.document;
       if (fetchedDoc.fileData) {
-        // Open file in new tab or trigger download
-        const win = window.open();
-        if (win) {
-          win.document.write(
-            `<iframe src="${fetchedDoc.fileData}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`
-          );
-          win.document.title = fetchedDoc.fileName || fetchedDoc.name;
-        } else {
-          // Fallback direct link
-          const link = document.createElement("a");
-          link.href = fetchedDoc.fileData;
-          link.download = fetchedDoc.fileName || fetchedDoc.name;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
+        // Convert data URL to Blob URL for clean browser preview (PDF, Images, etc.)
+        const resBlob = await fetch(fetchedDoc.fileData);
+        const blob = await resBlob.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        window.open(blobUrl, "_blank");
       } else {
         showToast("No binary file attached to this record.", "error");
       }
@@ -271,14 +288,24 @@ export default function DocumentsPage() {
                       </td>
                       <td className="px-4 py-3 text-ink-muted">{formatDateTime(doc.updatedAt)}</td>
                       <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-3">
+                        <div className="flex items-center justify-end gap-2">
                           {hasAccess ? (
-                            <button
-                              onClick={() => handleViewDocument(doc)}
-                              className="rounded bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors"
-                            >
-                              View / Download
-                            </button>
+                            <>
+                              <button
+                                onClick={() => handleViewDocument(doc)}
+                                className="rounded bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-colors inline-flex items-center gap-1"
+                                title="Open & view document in browser"
+                              >
+                                👁️ View
+                              </button>
+                              <button
+                                onClick={() => handleDownloadDocument(doc)}
+                                className="rounded bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors inline-flex items-center gap-1"
+                                title="Download file to device"
+                              >
+                                📥 Download
+                              </button>
+                            </>
                           ) : (
                             <span
                               className="inline-flex items-center gap-1 rounded bg-canvas border border-border px-2 py-0.5 text-xs text-ink-faint"
@@ -290,7 +317,7 @@ export default function DocumentsPage() {
                           {hasAccess && (
                             <button
                               onClick={() => openEdit(doc)}
-                              className="text-xs font-medium text-brand-600 hover:underline"
+                              className="text-xs font-medium text-brand-600 hover:underline ml-1"
                             >
                               Edit
                             </button>

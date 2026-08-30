@@ -42,7 +42,7 @@ function LockIcon({ className = "h-3.5 w-3.5 text-ink-faint" }: { className?: st
 }
 
 export default function ProjectsPage() {
-  const { projects, tasks, employees, addProject } = useApp();
+  const { projects, tasks, employees, documents, addProject } = useApp();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
@@ -116,6 +116,7 @@ export default function ProjectsPage() {
                   <th className="px-4 py-2 font-medium">Project</th>
                   <th className="px-4 py-2 font-medium">Status</th>
                   <th className="px-4 py-2 font-medium">Progress</th>
+                  <th className="px-4 py-2 font-medium">Resources</th>
                   <th className="px-4 py-2 font-medium">Access</th>
                   <th className="px-4 py-2 font-medium">Members</th>
                   <th className="px-4 py-2 font-medium">Start</th>
@@ -125,13 +126,15 @@ export default function ProjectsPage() {
               <tbody>
                 {allProjects.map((project) => {
                   const progress = projectProgress(project.id);
+                  const projectTasks = tasks.filter((t) => t.projectId === project.id);
+                  const projectDocs = documents.filter((d) => d.projectId === project.id);
                   const members = employees.filter((e) => project.memberIds.includes(e.id));
                   const hasAccess = isAdmin || project.memberIds.includes(currentUser.id);
 
                   return (
                     <tr
                       key={project.id}
-                      className={`border-b border-border last:border-0 ${
+                      className={`border-b border-border last:border-0 hover:bg-canvas/30 transition-colors ${
                         !hasAccess ? "bg-canvas/40" : ""
                       }`}
                     >
@@ -168,6 +171,16 @@ export default function ProjectsPage() {
                             />
                           </div>
                           <span className="text-xs font-medium text-ink-muted">{progress}%</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5 text-xs text-ink-muted">
+                          <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-700" title="Tasks">
+                            ⚡ {projectTasks.length}
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded bg-blue-50 px-1.5 py-0.5 text-[11px] font-medium text-blue-700" title="Documents">
+                            📄 {projectDocs.length}
+                          </span>
                         </div>
                       </td>
                       <td className="px-4 py-3">

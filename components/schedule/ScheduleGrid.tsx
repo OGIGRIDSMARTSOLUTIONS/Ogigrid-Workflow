@@ -1,7 +1,7 @@
 "use client";
 
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { formatWeekdayHeader } from "@/lib/data";
+import { formatWeekdayHeader, isOverdue, todayIso } from "@/lib/data";
 import { Employee, Meeting, Project, Task } from "@/lib/types";
 
 interface ScheduleGridProps {
@@ -104,29 +104,49 @@ export function ScheduleGrid({
                       ))}
 
                       {/* Tasks */}
-                      {dayTasks.map((task) => (
-                        <button
-                          key={task.id}
-                          type="button"
-                          onClick={() => onSelectTask(task)}
-                          className={`w-full rounded-sm border px-2.5 py-2 text-left transition-colors ${
-                            selectedTaskId === task.id
-                              ? "border-brand-400 bg-brand-50"
-                              : "border-border bg-canvas hover:border-brand-300 hover:bg-brand-50/50"
-                          }`}
-                        >
-                          <p className="truncate text-sm font-medium text-ink">{task.name}</p>
-                          <p className="truncate text-xs text-ink-faint">
-                            {projects.find((p) => p.id === task.projectId)?.name ?? "—"}
-                          </p>
-                          <div className="mt-1.5 flex items-center justify-between">
-                            <StatusBadge status={task.status} />
-                            <span className="text-[11px] text-ink-faint">
-                              {task.durationDays}d
-                            </span>
-                          </div>
-                        </button>
-                      ))}
+                      {dayTasks.map((task) => {
+                        const overdue = isOverdue(task.deadline, task.status);
+                        const dueToday = task.deadline === todayIso() && task.status !== "Completed";
+
+                        return (
+                          <button
+                            key={task.id}
+                            type="button"
+                            onClick={() => onSelectTask(task)}
+                            className={`w-full rounded-md border p-2 text-left transition-all shadow-subtle ${
+                              selectedTaskId === task.id
+                                ? "border-brand-500 bg-brand-50/70 ring-1 ring-brand-400"
+                                : overdue
+                                ? "border-rose-300 bg-rose-50/40 hover:bg-rose-50/80"
+                                : dueToday
+                                ? "border-amber-300 bg-amber-50/40 hover:bg-amber-50/80"
+                                : "border-border bg-canvas hover:border-brand-300 hover:bg-brand-50/40"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-1">
+                              <p className="truncate text-xs font-semibold text-ink">{task.name}</p>
+                              {overdue ? (
+                                <span className="flex-shrink-0 rounded bg-rose-100 px-1 py-0.2 text-[9px] font-bold text-rose-700">
+                                  Overdue
+                                </span>
+                              ) : dueToday ? (
+                                <span className="flex-shrink-0 rounded bg-amber-100 px-1 py-0.2 text-[9px] font-bold text-amber-800">
+                                  Due Today
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="truncate text-[11px] text-ink-faint mt-0.5">
+                              {projects.find((p) => p.id === task.projectId)?.name ?? "—"}
+                            </p>
+                            <div className="mt-1.5 flex items-center justify-between">
+                              <StatusBadge status={task.status} />
+                              <span className="text-[10px] text-ink-faint font-medium">
+                                {task.durationDays}d
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
 
                       {!hasItems && (
                         <div className="h-full min-h-[56px] rounded-sm border border-dashed border-border" />

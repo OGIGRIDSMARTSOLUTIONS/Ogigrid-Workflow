@@ -19,8 +19,24 @@ import { TaskDetailPanel } from "@/components/tasks/TaskDetailPanel";
 import { useApp } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
-import { formatDate, computeProjectProgress } from "@/lib/data";
-import { TaskStatus } from "@/lib/types";
+import { formatDate, formatDateTime, computeProjectProgress } from "@/lib/data";
+import { DocumentItem, TaskStatus } from "@/lib/types";
+
+function formatFileSize(bytes?: number): string {
+  if (!bytes || bytes <= 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getFileIcon(mimeType?: string, fileName?: string) {
+  const ext = fileName?.split(".").pop()?.toLowerCase();
+  if (mimeType?.includes("pdf") || ext === "pdf") return "📄";
+  if (mimeType?.includes("image") || ["png", "jpg", "jpeg", "svg", "webp"].includes(ext || "")) return "🖼️";
+  if (mimeType?.includes("sheet") || mimeType?.includes("csv") || ["xlsx", "xls", "csv"].includes(ext || "")) return "📊";
+  if (mimeType?.includes("word") || ["docx", "doc", "txt", "md"].includes(ext || "")) return "📝";
+  return "📁";
+}
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
@@ -29,6 +45,7 @@ export default function ProjectDetailPage() {
     projects,
     tasks,
     employees,
+    documents,
     updateProject,
     deleteProject,
     addProjectMember,
@@ -78,10 +95,56 @@ export default function ProjectDetailPage() {
   }
 
   const projectTasks = tasks.filter((t) => t.projectId === project.id);
+  const projectDocs = documents.filter((d) => d.projectId === project.id);
+  const completedTasksCount = projectTasks.filter((t) => t.status === "Completed").length;
   const selectedTask = projectTasks.find((t) => t.id === selectedTaskId) ?? null;
   const members = employees.filter((e) => project.memberIds.includes(e.id));
   const nonMembers = employees.filter((e) => !project.memberIds.includes(e.id));
   const progress = computeProjectProgress(projectTasks);
+
+  async function handleDownloadDocument(doc: DocumentItem) {
+    try {
+      const res = await fetch(`/api/documents/${doc.id}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unable to access document.");
+      const fetchedDoc = data.document;
+      if (fetchedDoc.fileData) {
+        const resBlob = await fetch(fetchedDoc.fileData);
+        const blob = await resBlob.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fetchedDoc.fileName || fetchedDoc.name || "download";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } else {
+        showToast("No binary file attached to this record.", "error");
+      }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Access denied.", "error");
+    }
+  }
+
+  async function handleViewDocument(doc: DocumentItem) {
+    try {
+      const res = await fetch(`/api/documents/${doc.id}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unable to access document.");
+      const fetchedDoc = data.document;
+      if (fetchedDoc.fileData) {
+        const resBlob = await fetch(fetchedDoc.fileData);
+        const blob = await resBlob.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        window.open(blobUrl, "_blank");
+      } else {
+        showToast("No binary file attached to this record.", "error");
+      }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Access denied.", "error");
+    }
+  }
 
   async function handleAddMember() {
     if (!addMemberId || !currentUser) return;
@@ -127,6 +190,35 @@ export default function ProjectDetailPage() {
       <SecondaryButton onClick={() => router.push("/projects")} className="mb-4">
         ← Back to Projects
       </SecondaryButton>
+
+      {/* Project Overview Stats Ribbon */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-6">
+        <div className="rounded-lg border border-border bg-panel p-3.5 shadow-subtle border-t-2 border-t-blue-600">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint">Total Tasks</p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-xl font-bold text-ink">{projectTasks.length}</span>
+            <span className="text-xs text-ink-muted">({completedTasksCount} done)</span>
+          </div>
+        </div>
+        <div className="rounded-lg border border-border bg-panel p-3.5 shadow-subtle border-t-2 border-t-emerald-600">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint">Progress</p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-xl font-bold text-ink">{progress}%</span>
+          </div>
+        </div>
+        <div className="rounded-lg border border-border bg-panel p-3.5 shadow-subtle border-t-2 border-t-indigo-600">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint">Active Members</p>
+          <div className="mt-1">
+            <span className="text-xl font-bold text-ink">{members.length}</span>
+          </div>
+        </div>
+        <div className="rounded-lg border border-border bg-panel p-3.5 shadow-subtle border-t-2 border-t-amber-500">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint">Project Documents</p>
+          <div className="mt-1">
+            <span className="text-xl font-bold text-ink">{projectDocs.length}</span>
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-6">
@@ -285,6 +377,74 @@ export default function ProjectDetailPage() {
                   })}
                 </tbody>
               </table>
+            )}
+          </Panel>
+
+          <Panel
+            title="Project Documents & Files"
+            action={
+              <Link
+                href="/documents"
+                className="text-xs font-semibold text-brand-600 hover:underline inline-flex items-center gap-1"
+              >
+                + Upload to Project →
+              </Link>
+            }
+            noPadding={projectDocs.length > 0}
+          >
+            {projectDocs.length === 0 ? (
+              <p className="text-sm text-ink-faint py-3">
+                No documents uploaded for this project yet.{" "}
+                <Link href="/documents" className="text-brand-600 hover:underline">
+                  Upload a document
+                </Link>{" "}
+                to share files with project members.
+              </p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {projectDocs.map((doc) => {
+                  const icon = getFileIcon(doc.mimeType, doc.fileName || doc.name);
+                  const size = formatFileSize(doc.fileSize);
+
+                  return (
+                    <li
+                      key={doc.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 hover:bg-canvas/40 transition-colors"
+                    >
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <span className="text-xl flex-shrink-0 mt-0.5">{icon}</span>
+                        <div className="min-w-0">
+                          <p className="font-medium text-ink text-sm truncate">{doc.name}</p>
+                          <div className="flex items-center gap-2 text-xs text-ink-faint mt-0.5">
+                            {doc.fileName && doc.fileName !== doc.name && (
+                              <span className="truncate max-w-[160px]">{doc.fileName}</span>
+                            )}
+                            {size && <span>• {size}</span>}
+                            <span>• {formatDateTime(doc.updatedAt)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={() => handleViewDocument(doc)}
+                          className="rounded-md border border-border bg-panel px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-canvas hover:border-slate-300 transition-colors"
+                        >
+                          👁️ View
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadDocument(doc)}
+                          className="rounded-md bg-[#0B1120] px-2.5 py-1 text-xs font-semibold text-white hover:bg-slate-800 transition-colors"
+                        >
+                          📥 Download
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </Panel>
         </div>

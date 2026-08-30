@@ -31,16 +31,13 @@ export async function GET() {
       listNotificationsForUser(user!.id),
     ]);
 
-  const isAdmin = user!.role === "Admin";
-  const scopedDailyReports = isAdmin ? dailyReports : dailyReports.filter((r) => r.employeeId === user!.id);
-
   return NextResponse.json({
     employees,
     projects,
     tasks,
     meetings,
     documents,
-    dailyReports: scopedDailyReports,
+    dailyReports,
     activity,
     notifications,
   });

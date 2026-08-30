@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
-import { formatDateTime } from "@/lib/data";
+import { formatDateTime, isAfter6pm, todayIso } from "@/lib/data";
+import { NotificationItem } from "@/lib/types";
 
 function relatedHref(relatedType: string | null, relatedId: string | null): string | null {
   if (!relatedType || !relatedId) return null;
@@ -42,23 +43,55 @@ function getNotificationIcon(type: string): string {
 }
 
 export function NotificationsPanel({ onClose }: { onClose: () => void }) {
-  const { notifications, markNotificationRead, markAllNotificationsRead } = useApp();
+  const { notifications, dailyReports, markNotificationRead, markAllNotificationsRead } = useApp();
   const { currentUser } = useAuth();
   const router = useRouter();
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [dismissedReminderDate, setDismissedReminderDate] = useState<string | null>(null);
 
   if (!currentUser) return null;
 
+  const today = todayIso();
+  const after6pm = isAfter6pm();
+  const hasSubmittedToday = dailyReports.some(
+    (r) => r.employeeId === currentUser.id && r.date === today
+  );
+
   const mine = useMemo(() => {
-    return notifications
+    const list: NotificationItem[] = notifications
       .filter((n) => n.userId === currentUser.id)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [notifications, currentUser.id]);
+
+    // Dynamic End-of-Day Standup Reminder if after 6pm and unsubmitted
+    if (after6pm && !hasSubmittedToday && dismissedReminderDate !== today) {
+      const standupReminder: NotificationItem = {
+        id: `standup-reminder-${today}`,
+        userId: currentUser.id,
+        type: "daily-report",
+        title: "Daily Standup Reminder",
+        message: `It's past 6:00 PM and you haven't submitted your daily report for today (${today}). Click to submit your update.`,
+        read: false,
+        createdAt: new Date().toISOString(),
+        relatedType: "report",
+        relatedId: null,
+      };
+      return [standupReminder, ...list];
+    }
+
+    return list;
+  }, [notifications, currentUser.id, after6pm, hasSubmittedToday, dismissedReminderDate, today]);
 
   const unreadList = useMemo(() => mine.filter((n) => !n.read), [mine]);
   const displayedList = filter === "unread" ? unreadList : mine;
 
-  function handleClick(notif: (typeof mine)[number]) {
+  function handleClick(notif: NotificationItem) {
+    if (notif.id.startsWith("standup-reminder-")) {
+      setDismissedReminderDate(today);
+      router.push("/daily-reports");
+      onClose();
+      return;
+    }
+
     if (!notif.read) {
       markNotificationRead(notif.id);
     }
