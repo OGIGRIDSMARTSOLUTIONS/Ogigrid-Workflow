@@ -10,7 +10,7 @@ import { useApp } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/data";
 
-export function LockIcon({ className = "h-3.5 w-3.5 text-ink-faint" }: { className?: string }) {
+function LockIcon({ className = "h-3.5 w-3.5 text-ink-faint" }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"

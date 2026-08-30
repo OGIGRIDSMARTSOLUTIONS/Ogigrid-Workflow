@@ -122,10 +122,7 @@ export function TeamWorkloadPanel({ employees, tasks, projects }: TeamWorkloadPa
   }, [activeEmployees, selectedDept, search, tasksByAssignee, selectedStatusFilter, projectsMap]);
 
   return (
-    <Panel
-      title="Who Is Working on What?"
-      subtitle="Real-time breakdown of current assignments and active projects across the team."
-    >
+    <Panel title="Who Is Working on What?">
       <div className="space-y-4">
         {/* Filter & Search Bar */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-3">

@@ -182,7 +182,7 @@ export default function DocumentsPage() {
           document.body.removeChild(link);
         }
       } else {
-        showToast("No binary file attached to this record.", "info");
+        showToast("No binary file attached to this record.", "error");
       }
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Access denied.", "error");
