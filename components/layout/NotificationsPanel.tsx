@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { formatDateTime, isAfter6pm, todayIso } from "@/lib/data";
-import { NotificationItem } from "@/lib/types";
+import { AppNotification } from "@/lib/types";
 
 function relatedHref(relatedType: string | null, relatedId: string | null): string | null {
   if (!relatedType || !relatedId) return null;
@@ -58,13 +58,13 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
   );
 
   const mine = useMemo(() => {
-    const list: NotificationItem[] = notifications
+    const list: AppNotification[] = notifications
       .filter((n) => n.userId === currentUser.id)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
     // Dynamic End-of-Day Standup Reminder if after 6pm and unsubmitted
     if (after6pm && !hasSubmittedToday && dismissedReminderDate !== today) {
-      const standupReminder: NotificationItem = {
+      const standupReminder: AppNotification = {
         id: `standup-reminder-${today}`,
         userId: currentUser.id,
         type: "daily-report",
@@ -84,7 +84,7 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
   const unreadList = useMemo(() => mine.filter((n) => !n.read), [mine]);
   const displayedList = filter === "unread" ? unreadList : mine;
 
-  function handleClick(notif: NotificationItem) {
+  function handleClick(notif: AppNotification) {
     if (notif.id.startsWith("standup-reminder-")) {
       setDismissedReminderDate(today);
       router.push("/daily-reports");
