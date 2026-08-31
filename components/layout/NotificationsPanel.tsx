@@ -16,8 +16,10 @@ function relatedHref(relatedType: string | null, relatedId: string | null): stri
       return `/projects/${relatedId}`;
     case "meeting":
       return `/meetings`;
+    case "document":
+      return `/documents`;
     case "report":
-      return `/daily-reports`;
+      return `/daily-reports?reportId=${relatedId}`;
     case "employee":
       return `/employees/${relatedId}`;
     default:
@@ -29,6 +31,8 @@ function getNotificationIcon(type: string): string {
   switch (type) {
     case "meeting":
       return "📅";
+    case "document":
+      return "📄";
     case "task-assigned":
       return "📌";
     case "task-status":

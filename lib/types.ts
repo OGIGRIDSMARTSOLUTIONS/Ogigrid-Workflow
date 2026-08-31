@@ -62,6 +62,14 @@ export interface DailyReport {
   submittedAt: string; // ISO timestamp
 }
 
+export interface DailyReportComment {
+  id: string;
+  reportId: string;
+  authorId: string;
+  body: string;
+  createdAt: string; // ISO timestamp
+}
+
 export interface Meeting {
   id: string;
   title: string;

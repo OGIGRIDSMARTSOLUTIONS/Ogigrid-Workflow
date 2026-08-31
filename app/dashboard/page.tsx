@@ -39,10 +39,19 @@ export default function DashboardPage() {
   // Show reminder banner only if after 6pm and unsubmitted
   const showReminderBanner = after6pm && !hasUserSubmittedToday;
 
-  // Recent & upcoming meetings
+  // Sort upcoming meetings first, then recent ended ones
+  const nowStr = `${today} ${new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
   const dashboardMeetings = [...meetings]
-    .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))
-    .slice(0, 5);
+    .sort((a, b) => {
+      const aKey = `${a.date} ${a.time}`;
+      const bKey = `${b.date} ${b.time}`;
+      const aUpcoming = aKey >= nowStr;
+      const bUpcoming = bKey >= nowStr;
+      if (aUpcoming && !bUpcoming) return -1;
+      if (!aUpcoming && bUpcoming) return 1;
+      return aUpcoming ? aKey.localeCompare(bKey) : bKey.localeCompare(aKey);
+    })
+    .slice(0, 6);
 
   // Recent documents
   const recentDocuments = [...documents]

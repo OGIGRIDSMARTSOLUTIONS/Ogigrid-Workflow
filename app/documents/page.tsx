@@ -47,6 +47,8 @@ const emptyForm = {
   mimeType: "",
 };
 
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+
 export default function DocumentsPage() {
   const { documents, projects, addDocument, updateDocument, deleteDocument } = useApp();
   const { currentUser } = useAuth();
@@ -60,7 +62,6 @@ export default function DocumentsPage() {
   const [uploading, setUploading] = useState(false);
 
   if (!currentUser) return null;
-  const isAdmin = currentUser.role === "Admin";
 
   function openCreate() {
     setEditingId(null);
@@ -89,7 +90,12 @@ export default function DocumentsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Default name to file name if name not entered yet or matches old file
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      showToast("File is too large. Maximum size is 5 MB.", "error");
+      e.target.value = "";
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       const base64 = reader.result as string;
@@ -238,14 +244,11 @@ export default function DocumentsPage() {
                 <tbody>
                   {documents.map((doc) => {
                     const project = projects.find((p) => p.id === doc.projectId);
-                    const hasAccess = isAdmin || (project ? project.memberIds.includes(currentUser.id) : false);
 
                     return (
                       <tr
                         key={doc.id}
-                        className={`border-b border-border last:border-0 ${
-                          !hasAccess ? "bg-canvas/40" : "hover:bg-canvas"
-                        }`}
+                        className="border-b border-border last:border-0 hover:bg-canvas"
                       >
                         <td className="px-4 py-3">
                           <div className="flex items-start gap-2.5">
@@ -267,19 +270,12 @@ export default function DocumentsPage() {
                         </td>
                         <td className="px-4 py-3">
                           {project ? (
-                            hasAccess ? (
-                              <Link
-                                href={`/projects/${project.id}`}
-                                className="font-medium text-brand-600 hover:underline"
-                              >
-                                {project.name}
-                              </Link>
-                            ) : (
-                              <span className="text-ink-muted inline-flex items-center gap-1">
-                                {project.name}
-                                <span className="text-[10px] text-ink-faint">(Locked)</span>
-                              </span>
-                            )
+                            <Link
+                              href={`/projects/${project.id}`}
+                              className="font-medium text-brand-600 hover:underline"
+                            >
+                              {project.name}
+                            </Link>
                           ) : (
                             <span className="text-status-notsubmitted font-medium">Missing Project</span>
                           )}
@@ -290,42 +286,27 @@ export default function DocumentsPage() {
                         <td className="px-4 py-3 text-ink-muted">{formatDateTime(doc.updatedAt)}</td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            {hasAccess ? (
-                              <>
-                                <button
-                                  onClick={() => handleViewDocument(doc)}
-                                  className="rounded bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-colors inline-flex items-center gap-1"
-                                  title="Open & view document in browser"
-                                >
-                                  👁️ View
-                                </button>
-                                <button
-                                  onClick={() => handleDownloadDocument(doc)}
-                                  className="rounded bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors inline-flex items-center gap-1"
-                                  title="Download file to device"
-                                >
-                                  📥 Download
-                                </button>
-                              </>
-                            ) : (
-                              <span
-                                className="inline-flex items-center gap-1 rounded bg-canvas border border-border px-2 py-0.5 text-xs text-ink-faint"
-                                title="You are not a member of this project"
-                              >
-                                🔒 Inaccessible
-                              </span>
-                            )}
-                            {hasAccess && (
-                              <button
-                                onClick={() => openEdit(doc)}
-                                className="text-xs font-medium text-brand-600 hover:underline ml-1"
-                              >
-                                Edit
-                              </button>
-                            )}
-                            {(isAdmin || hasAccess) && (
-                              <DangerLink onClick={() => setDeleteTarget(doc)}>Delete</DangerLink>
-                            )}
+                            <button
+                              onClick={() => handleViewDocument(doc)}
+                              className="rounded bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-colors inline-flex items-center gap-1"
+                              title="Open & view document in browser"
+                            >
+                              👁️ View
+                            </button>
+                            <button
+                              onClick={() => handleDownloadDocument(doc)}
+                              className="rounded bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors inline-flex items-center gap-1"
+                              title="Download file to device"
+                            >
+                              📥 Download
+                            </button>
+                            <button
+                              onClick={() => openEdit(doc)}
+                              className="text-xs font-medium text-brand-600 hover:underline ml-1"
+                            >
+                              Edit
+                            </button>
+                            <DangerLink onClick={() => setDeleteTarget(doc)}>Delete</DangerLink>
                           </div>
                         </td>
                       </tr>
@@ -347,7 +328,7 @@ export default function DocumentsPage() {
             {/* 1. File Upload */}
             <Field
               label={editingId ? "Replace File (optional)" : "Select File"}
-              hint="Select a PDF, image, spreadsheet, or document."
+              hint="Select a PDF, image, spreadsheet, or document (max 5 MB)."
             >
               <input
                 ref={fileInputRef}

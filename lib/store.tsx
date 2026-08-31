@@ -5,6 +5,7 @@ import {
   ActivityItem,
   AppNotification,
   DailyReport,
+  DailyReportComment,
   DocumentItem,
   Employee,
   Meeting,
@@ -99,6 +100,8 @@ interface AppActions {
   deleteDocument: (id: string) => Promise<void>;
 
   addDailyReport: (input: Record<string, unknown>) => Promise<DailyReport>;
+  updateDailyReport: (id: string, patch: Record<string, unknown>) => Promise<DailyReport>;
+  addDailyReportComment: (reportId: string, body: string) => Promise<DailyReportComment>;
 
   markNotificationRead: (id: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
@@ -206,6 +209,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       addDailyReport: (input) =>
         mutate("/api/daily-reports", { method: "POST", body: JSON.stringify(input) }, (d) => d.report),
+      updateDailyReport: (id, patch) =>
+        mutate(`/api/daily-reports/${id}`, { method: "PATCH", body: JSON.stringify(patch) }, (d) => d.report),
+      addDailyReportComment: (reportId, body) =>
+        mutate(
+          `/api/daily-reports/${reportId}/comments`,
+          { method: "POST", body: JSON.stringify({ body }) },
+          (d) => d.comment
+        ),
 
       markNotificationRead: (id) =>
         mutate(`/api/notifications/${id}/read`, { method: "PATCH" }, () => undefined),
