@@ -202,6 +202,14 @@ export default function LoginPage() {
                   required
                 />
               </Field>
+              <div className="flex justify-end">
+                <a
+                  href="/forgot-password"
+                  className="text-xs font-medium text-brand-600 hover:underline"
+                >
+                  Forgot password?
+                </a>
+              </div>
               {error && <p className="text-sm text-status-notsubmitted">{error}</p>}
               <PrimaryButton type="submit" className="w-full" disabled={submitting}>
                 Log In

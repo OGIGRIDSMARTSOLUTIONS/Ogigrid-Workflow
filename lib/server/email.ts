@@ -11,7 +11,10 @@ const RESEND_API_URL = "https://api.resend.com/emails";
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL || "Ogigrid Workflow <onboarding@resend.dev>";
+  const from =
+    process.env.RESEND_FROM_EMAIL ||
+    process.env.SALES_FROM_EMAIL ||
+    "Ogigrid Workflow <no-reply@contact.sogapeters.com.ng>";
 
   if (!apiKey) {
     // Fail loudly in server logs, but never leak "email sending is
