@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { pool, query, queryOne } from "@/lib/db";
 import { computeProjectProgress } from "@/lib/data";
 import {
@@ -154,6 +155,46 @@ export async function updateEmployee(
     ]
   );
   return mapEmployee(row);
+}
+
+// ---------------------------------------------------------------------
+// Password reset — forgot-password email flow.
+// ---------------------------------------------------------------------
+
+// Creates a reset token for an employee and returns the RAW token (to be
+// emailed). Only the SHA-256 hash of it is stored, so this value is never
+// recoverable from the database afterwards.
+export async function createPasswordResetToken(employeeId: string) {
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  await query(
+    `INSERT INTO password_reset_tokens (employee_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
+    [employeeId, tokenHash, expiresAt]
+  );
+  return rawToken;
+}
+
+// Validates a raw token from a reset link, sets the new password if it's
+// still good, marks the token used, and kills every existing session for
+// that employee so a stolen/open session doesn't survive the reset.
+export async function consumePasswordResetToken(rawToken: string, newPassword: string) {
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+  const row = await queryOne<any>(
+    `SELECT * FROM password_reset_tokens
+     WHERE token_hash = $1 AND used_at IS NULL AND expires_at > now()`,
+    [tokenHash]
+  );
+  if (!row) {
+    return { ok: false as const, error: "This reset link is invalid or has expired." };
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+  await query(`UPDATE employees SET password_hash = $1 WHERE id = $2`, [passwordHash, row.employee_id]);
+  await query(`UPDATE password_reset_tokens SET used_at = now() WHERE id = $1`, [row.id]);
+  await query(`DELETE FROM sessions WHERE employee_id = $1`, [row.employee_id]);
+
+  return { ok: true as const };
 }
 
 export type EmployeeRemovalStrategy = { type: "unassign" } | { type: "reassign"; toEmployeeId: string };
