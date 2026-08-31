@@ -335,48 +335,50 @@ export default function ProjectDetailPage() {
                 }
               />
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-faint">
-                    <th className="px-4 py-2 font-medium">Task</th>
-                    <th className="px-4 py-2 font-medium">Assignee</th>
-                    <th className="px-4 py-2 font-medium">Status</th>
-                    <th className="px-4 py-2 font-medium">Priority</th>
-                    <th className="px-4 py-2 font-medium">Deadline</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {projectTasks.map((task) => {
-                    const dependsOn = projectTasks.find((t) => t.id === task.dependsOnTaskId);
-                    const blocked = !!dependsOn && dependsOn.status !== "Completed";
-                    const assignee = employees.find((e) => e.id === task.assigneeId);
-                    return (
-                      <tr
-                        key={task.id}
-                        onClick={() => setSelectedTaskId(task.id)}
-                        className={`cursor-pointer border-b border-border last:border-0 hover:bg-canvas ${
-                          selectedTaskId === task.id ? "bg-brand-50" : ""
-                        }`}
-                      >
-                        <td className="px-4 py-3">
-                          <p className="font-medium text-ink">{task.name}</p>
-                          {blocked && (
-                            <span className="mt-1 inline-block rounded-sm bg-status-notsubmittedBg px-1.5 py-0.5 text-[11px] font-medium text-status-notsubmitted">
-                              Waiting on {dependsOn?.name}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-ink-muted">{assignee?.name ?? "Unassigned"}</td>
-                        <td className="px-4 py-3">
-                          <StatusBadge status={task.status} />
-                        </td>
-                        <td className="px-4 py-3 text-ink-muted">{task.priority}</td>
-                        <td className="px-4 py-3 text-ink-muted">{formatDate(task.deadline)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[550px] text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-faint">
+                      <th className="px-4 py-2 font-medium">Task</th>
+                      <th className="px-4 py-2 font-medium">Assignee</th>
+                      <th className="px-4 py-2 font-medium">Status</th>
+                      <th className="px-4 py-2 font-medium">Priority</th>
+                      <th className="px-4 py-2 font-medium">Deadline</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {projectTasks.map((task) => {
+                      const dependsOn = projectTasks.find((t) => t.id === task.dependsOnTaskId);
+                      const blocked = !!dependsOn && dependsOn.status !== "Completed";
+                      const assignee = employees.find((e) => e.id === task.assigneeId);
+                      return (
+                        <tr
+                          key={task.id}
+                          onClick={() => setSelectedTaskId(task.id)}
+                          className={`cursor-pointer border-b border-border last:border-0 hover:bg-canvas ${
+                            selectedTaskId === task.id ? "bg-brand-50" : ""
+                          }`}
+                        >
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-ink">{task.name}</p>
+                            {blocked && (
+                              <span className="mt-1 inline-block rounded-sm bg-status-notsubmittedBg px-1.5 py-0.5 text-[11px] font-medium text-status-notsubmitted">
+                                Waiting on {dependsOn?.name}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-ink-muted">{assignee?.name ?? "Unassigned"}</td>
+                          <td className="px-4 py-3">
+                            <StatusBadge status={task.status} />
+                          </td>
+                          <td className="px-4 py-3 text-ink-muted">{task.priority}</td>
+                          <td className="px-4 py-3 text-ink-muted">{formatDate(task.deadline)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </Panel>
 

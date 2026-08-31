@@ -167,96 +167,98 @@ export default function EmployeesPage() {
           />
         ) : (
           <Panel noPadding>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-faint">
-                  <th className="px-4 py-2 font-medium">Name</th>
-                  <th className="px-4 py-2 font-medium">Role</th>
-                  <th className="px-4 py-2 font-medium">Departments</th>
-                  <th className="px-4 py-2 font-medium">Email</th>
-                  <th className="px-4 py-2 font-medium">Status</th>
-                  {isAdmin && <th className="px-4 py-2 font-medium" />}
-                </tr>
-              </thead>
-              <tbody>
-                {employees.map((employee) => (
-                  <tr key={employee.id} className="border-b border-border last:border-0">
-                    <td className="px-4 py-3">
-                      <Link href={`/employees/${employee.id}`} className="flex items-center gap-2 hover:text-brand-600">
-                        <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-sm bg-brand-100 text-xs font-semibold text-brand-700">
-                          {employee.initials}
-                        </div>
-                        <span className="font-medium text-ink hover:underline">{employee.name}</span>
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-ink-muted">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-flex items-center rounded-sm px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                            employee.role === "Admin"
-                              ? "bg-brand-100 text-brand-700"
-                              : "bg-slate-100 text-slate-700"
-                          }`}
-                        >
-                          {employee.role === "Admin" ? "Administrator" : "Employee"}
-                        </span>
-                        {employee.isPrimaryAdmin && (
-                          <span className="rounded-sm bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700">
-                            Primary
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {employee.departments.length ? (
-                        <div className="flex flex-wrap gap-1">
-                          {employee.departments.map((dept) => (
-                            <DepartmentBadge key={dept} name={dept} />
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-ink-faint">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-ink-muted">{employee.email || "—"}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-medium ${
-                          employee.status === "Active"
-                            ? "bg-status-completedBg text-status-completed"
-                            : "bg-status-notstartedBg text-status-notstarted"
-                        }`}
-                      >
-                        {employee.status}
-                      </span>
-                    </td>
-                    {isAdmin && (
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-3">
-                          <button
-                            onClick={() => openEdit(employee)}
-                            className="text-xs font-medium text-brand-600 hover:underline"
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[650px] text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-faint">
+                    <th className="px-4 py-2 font-medium">Name</th>
+                    <th className="px-4 py-2 font-medium">Role</th>
+                    <th className="px-4 py-2 font-medium">Departments</th>
+                    <th className="px-4 py-2 font-medium">Email</th>
+                    <th className="px-4 py-2 font-medium">Status</th>
+                    {isAdmin && <th className="px-4 py-2 font-medium" />}
+                  </tr>
+                </thead>
+                <tbody>
+                  {employees.map((employee) => (
+                    <tr key={employee.id} className="border-b border-border last:border-0 hover:bg-canvas">
+                      <td className="px-4 py-3">
+                        <Link href={`/employees/${employee.id}`} className="flex items-center gap-2 hover:text-brand-600">
+                          <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-sm bg-brand-100 text-xs font-semibold text-brand-700">
+                            {employee.initials}
+                          </div>
+                          <span className="font-medium text-ink hover:underline">{employee.name}</span>
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-ink-muted">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex items-center rounded-sm px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                              employee.role === "Admin"
+                                ? "bg-brand-100 text-brand-700"
+                                : "bg-slate-100 text-slate-700"
+                            }`}
                           >
-                            Edit
-                          </button>
-                          {!employee.isPrimaryAdmin && (
-                            <button
-                              onClick={() => handlePromoteDemote(employee)}
-                              className="text-xs font-medium text-brand-600 hover:underline"
-                            >
-                              {employee.role === "Admin" ? "Demote" : "Promote"}
-                            </button>
-                          )}
-                          {!employee.isPrimaryAdmin && (
-                            <DangerLink onClick={() => setRemovalTarget(employee)}>Remove</DangerLink>
+                            {employee.role === "Admin" ? "Administrator" : "Employee"}
+                          </span>
+                          {employee.isPrimaryAdmin && (
+                            <span className="rounded-sm bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700">
+                              Primary
+                            </span>
                           )}
                         </div>
                       </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <td className="px-4 py-3">
+                        {employee.departments.length ? (
+                          <div className="flex flex-wrap gap-1">
+                            {employee.departments.map((dept) => (
+                              <DepartmentBadge key={dept} name={dept} />
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-ink-faint">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-ink-muted">{employee.email || "—"}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-medium ${
+                            employee.status === "Active"
+                              ? "bg-status-completedBg text-status-completed"
+                              : "bg-status-notstartedBg text-status-notstarted"
+                          }`}
+                        >
+                          {employee.status}
+                        </span>
+                      </td>
+                      {isAdmin && (
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-3">
+                            <button
+                              onClick={() => openEdit(employee)}
+                              className="text-xs font-medium text-brand-600 hover:underline"
+                            >
+                              Edit
+                            </button>
+                            {!employee.isPrimaryAdmin && (
+                              <button
+                                onClick={() => handlePromoteDemote(employee)}
+                                className="text-xs font-medium text-brand-600 hover:underline"
+                              >
+                                {employee.role === "Admin" ? "Demote" : "Promote"}
+                              </button>
+                            )}
+                            {!employee.isPrimaryAdmin && (
+                              <DangerLink onClick={() => setRemovalTarget(employee)}>Remove</DangerLink>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </Panel>
         )}
       </div>
@@ -369,11 +371,21 @@ export default function EmployeesPage() {
               </select>
             </Field>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <SecondaryButton type="button" onClick={() => setModalOpen(false)}>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+              <SecondaryButton
+                type="button"
+                onClick={() => setModalOpen(false)}
+                disabled={submitting}
+                className="w-full sm:w-auto"
+              >
                 Cancel
               </SecondaryButton>
-              <PrimaryButton type="submit" disabled={submitting}>
+              <PrimaryButton
+                type="submit"
+                loading={submitting}
+                loadingText={editingId ? "Saving changes..." : "Adding employee..."}
+                className="w-full sm:w-auto"
+              >
                 {editingId ? "Save Changes" : "Add Employee"}
               </PrimaryButton>
             </div>

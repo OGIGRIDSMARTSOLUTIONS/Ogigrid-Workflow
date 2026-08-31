@@ -216,8 +216,13 @@ export default function SettingsPage() {
             </Field>
 
             <div className="pt-2">
-              <PrimaryButton type="submit" disabled={saving}>
-                {saving ? "Saving..." : "Save Account Settings"}
+              <PrimaryButton
+                type="submit"
+                loading={saving}
+                loadingText="Saving settings..."
+                className="w-full sm:w-auto"
+              >
+                Save Account Settings
               </PrimaryButton>
             </div>
           </form>

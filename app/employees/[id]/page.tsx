@@ -143,37 +143,39 @@ export default function EmployeeProfilePage() {
               {employeeTasks.length === 0 ? (
                 <p className="text-sm text-ink-faint">No tasks assigned yet.</p>
               ) : (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-faint">
-                      <th className="pb-2 font-medium">Task</th>
-                      <th className="pb-2 font-medium">Priority</th>
-                      <th className="pb-2 font-medium">Status</th>
-                      <th className="pb-2 font-medium">Deadline</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {employeeTasks.map((task) => (
-                      <tr key={task.id} className="border-b border-border last:border-0">
-                        <td className="py-2.5">
-                          <Link
-                            href={`/tasks/${task.id}`}
-                            className="font-medium text-ink hover:text-brand-600 hover:underline"
-                          >
-                            {task.name}
-                          </Link>
-                        </td>
-                        <td className="py-2.5">
-                          <PriorityBadge priority={task.priority} />
-                        </td>
-                        <td className="py-2.5">
-                          <StatusBadge status={task.status} />
-                        </td>
-                        <td className="py-2.5 text-ink-muted">{formatDate(task.deadline)}</td>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[500px] text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-faint">
+                        <th className="pb-2 font-medium">Task</th>
+                        <th className="pb-2 font-medium">Priority</th>
+                        <th className="pb-2 font-medium">Status</th>
+                        <th className="pb-2 font-medium">Deadline</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {employeeTasks.map((task) => (
+                        <tr key={task.id} className="border-b border-border last:border-0">
+                          <td className="py-2.5">
+                            <Link
+                              href={`/tasks/${task.id}`}
+                              className="font-medium text-ink hover:text-brand-600 hover:underline"
+                            >
+                              {task.name}
+                            </Link>
+                          </td>
+                          <td className="py-2.5">
+                            <PriorityBadge priority={task.priority} />
+                          </td>
+                          <td className="py-2.5">
+                            <StatusBadge status={task.status} />
+                          </td>
+                          <td className="py-2.5 text-ink-muted">{formatDate(task.deadline)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
               <p className="mt-3 text-xs text-ink-faint">
                 {activeTasks.length} active · {completedTasks.length} completed

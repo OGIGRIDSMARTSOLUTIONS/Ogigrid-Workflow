@@ -33,7 +33,6 @@ Welcome to the **Ogigrid Workflow** repository. This document serves as the pers
 │   ├── employees/page.tsx       # Team directory & Admin workspace tools
 │   ├── employees/[id]/page.tsx  # Role-aware profile card & assignments
 │   ├── meetings/page.tsx        # Meeting scheduler & platform integration
-│   ├── projects/page.tsx        # Workspace projects with locked/accessible state
 │   ├── schedule/page.tsx        # Synchronized weekly grid (Tasks + Meetings)
 │   ├── settings/page.tsx        # Self-serve account details & password management
 │   └── tasks/page.tsx           # Tasks view (Employee: mine / Admin: all + filters)

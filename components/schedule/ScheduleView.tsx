@@ -58,17 +58,17 @@ export function ScheduleView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3">
           <SecondaryButton onClick={() => setWeekStart(addDays(weekStart, -7))}>
-            ← Previous
+            ← Prev
           </SecondaryButton>
-          <p className="text-sm font-medium text-ink">{formatWeekRange(weekStart)}</p>
+          <p className="text-xs sm:text-sm font-semibold text-ink text-center min-w-[140px]">{formatWeekRange(weekStart)}</p>
           <SecondaryButton onClick={() => setWeekStart(addDays(weekStart, 7))}>
             Next →
           </SecondaryButton>
         </div>
-        <SecondaryButton onClick={() => setWeekStart(startOfWeek(todayIso()))}>
+        <SecondaryButton onClick={() => setWeekStart(startOfWeek(todayIso()))} className="self-end sm:self-auto">
           This week
         </SecondaryButton>
       </div>

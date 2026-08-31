@@ -92,7 +92,7 @@ export function SearchBar() {
     <div className="relative" ref={containerRef}>
       <input
         type="text"
-        placeholder="Search"
+        placeholder="Search..."
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);
@@ -100,10 +100,10 @@ export function SearchBar() {
         }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        className="w-56 rounded-sm border border-border bg-canvas px-3 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-brand-400 focus:outline-none"
+        className="w-28 sm:w-48 md:w-56 rounded-md border border-border bg-canvas px-2.5 py-1.5 text-xs sm:text-sm text-ink placeholder:text-ink-faint focus:border-brand-400 focus:outline-none transition-all"
       />
       {open && query.trim() && (
-        <div className="absolute right-0 z-40 mt-1 w-80 rounded-md border border-border bg-panel shadow-panel">
+        <div className="absolute right-0 z-40 mt-1 w-[calc(100vw-3rem)] sm:w-80 max-w-sm rounded-md border border-border bg-panel shadow-panel">
           {results.length === 0 ? (
             <p className="px-4 py-3 text-sm text-ink-faint">No results found.</p>
           ) : (

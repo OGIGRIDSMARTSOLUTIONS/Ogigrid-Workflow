@@ -103,7 +103,7 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="absolute right-0 top-11 z-50 w-96 rounded-md border border-border bg-panel shadow-panel animate-in fade-in zoom-in-95 duration-100">
+    <div className="absolute right-0 top-11 z-50 w-[calc(100vw-2.5rem)] sm:w-96 max-w-sm rounded-md border border-border bg-panel shadow-panel animate-in fade-in zoom-in-95 duration-100">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">

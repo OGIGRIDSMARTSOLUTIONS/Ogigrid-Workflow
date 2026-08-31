@@ -110,106 +110,108 @@ export default function ProjectsPage() {
           />
         ) : (
           <Panel noPadding>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-faint">
-                  <th className="px-4 py-2 font-medium">Project</th>
-                  <th className="px-4 py-2 font-medium">Status</th>
-                  <th className="px-4 py-2 font-medium">Progress</th>
-                  <th className="px-4 py-2 font-medium">Resources</th>
-                  <th className="px-4 py-2 font-medium">Access</th>
-                  <th className="px-4 py-2 font-medium">Members</th>
-                  <th className="px-4 py-2 font-medium">Start</th>
-                  <th className="px-4 py-2 font-medium">Deadline</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allProjects.map((project) => {
-                  const progress = projectProgress(project.id);
-                  const projectTasks = tasks.filter((t) => t.projectId === project.id);
-                  const projectDocs = documents.filter((d) => d.projectId === project.id);
-                  const members = employees.filter((e) => project.memberIds.includes(e.id));
-                  const hasAccess = isAdmin || project.memberIds.includes(currentUser.id);
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[700px] text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-faint">
+                    <th className="px-4 py-2 font-medium">Project</th>
+                    <th className="px-4 py-2 font-medium">Status</th>
+                    <th className="px-4 py-2 font-medium">Progress</th>
+                    <th className="px-4 py-2 font-medium">Resources</th>
+                    <th className="px-4 py-2 font-medium">Access</th>
+                    <th className="px-4 py-2 font-medium">Members</th>
+                    <th className="px-4 py-2 font-medium">Start</th>
+                    <th className="px-4 py-2 font-medium">Deadline</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allProjects.map((project) => {
+                    const progress = projectProgress(project.id);
+                    const projectTasks = tasks.filter((t) => t.projectId === project.id);
+                    const projectDocs = documents.filter((d) => d.projectId === project.id);
+                    const members = employees.filter((e) => project.memberIds.includes(e.id));
+                    const hasAccess = isAdmin || project.memberIds.includes(currentUser.id);
 
-                  return (
-                    <tr
-                      key={project.id}
-                      className={`border-b border-border last:border-0 hover:bg-canvas/30 transition-colors ${
-                        !hasAccess ? "bg-canvas/40" : ""
-                      }`}
-                    >
-                      <td className="px-4 py-3">
-                        {hasAccess ? (
-                          <Link
-                            href={`/projects/${project.id}`}
-                            className="font-medium text-ink hover:text-brand-600 hover:underline inline-flex items-center gap-1.5"
-                          >
-                            {project.name}
-                          </Link>
-                        ) : (
-                          <div className="flex items-center gap-1.5 text-ink-muted cursor-not-allowed">
-                            <span className="font-medium">{project.name}</span>
+                    return (
+                      <tr
+                        key={project.id}
+                        className={`border-b border-border last:border-0 hover:bg-canvas/30 transition-colors ${
+                          !hasAccess ? "bg-canvas/40" : ""
+                        }`}
+                      >
+                        <td className="px-4 py-3">
+                          {hasAccess ? (
+                            <Link
+                              href={`/projects/${project.id}`}
+                              className="font-medium text-ink hover:text-brand-600 hover:underline inline-flex items-center gap-1.5"
+                            >
+                              {project.name}
+                            </Link>
+                          ) : (
+                            <div className="flex items-center gap-1.5 text-ink-muted cursor-not-allowed">
+                              <span className="font-medium">{project.name}</span>
+                            </div>
+                          )}
+                          {project.description && (
+                            <p className="mt-0.5 max-w-xs truncate text-xs text-ink-faint">
+                              {project.description}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge status={project.status} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-24 overflow-hidden rounded-full bg-canvas border border-border/60">
+                              <div
+                                className={`h-full rounded-full transition-all ${
+                                  progress === 100 ? "bg-emerald-500" : "bg-brand-500"
+                                }`}
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-medium text-ink-muted">{progress}%</span>
                           </div>
-                        )}
-                        {project.description && (
-                          <p className="mt-0.5 max-w-xs truncate text-xs text-ink-faint">
-                            {project.description}
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={project.status} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 w-24 overflow-hidden rounded-full bg-canvas border border-border/60">
-                            <div
-                              className={`h-full rounded-full transition-all ${
-                                progress === 100 ? "bg-emerald-500" : "bg-brand-500"
-                              }`}
-                              style={{ width: `${progress}%` }}
-                            />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1.5 text-xs text-ink-muted">
+                            <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-700" title="Tasks">
+                              ⚡ {projectTasks.length}
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded bg-blue-50 px-1.5 py-0.5 text-[11px] font-medium text-blue-700" title="Documents">
+                              📄 {projectDocs.length}
+                            </span>
                           </div>
-                          <span className="text-xs font-medium text-ink-muted">{progress}%</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5 text-xs text-ink-muted">
-                          <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-700" title="Tasks">
-                            ⚡ {projectTasks.length}
-                          </span>
-                          <span className="inline-flex items-center gap-1 rounded bg-blue-50 px-1.5 py-0.5 text-[11px] font-medium text-blue-700" title="Documents">
-                            📄 {projectDocs.length}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {hasAccess ? (
-                          <span className="inline-flex items-center rounded-sm bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
-                            {isAdmin && !project.memberIds.includes(currentUser.id)
-                              ? "Admin Access"
-                              : "Member"}
-                          </span>
-                        ) : (
-                          <span
-                            className="inline-flex items-center gap-1 rounded-sm bg-canvas border border-border px-2 py-0.5 text-xs font-medium text-ink-faint"
-                            title="You are not a member of this project"
-                          >
-                            <LockIcon />
-                            Locked
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-ink-muted">
-                        {members.length ? members.map((m) => m.name).join(", ") : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-ink-muted">{formatDate(project.startDate)}</td>
-                      <td className="px-4 py-3 text-ink-muted">{formatDate(project.deadline)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="px-4 py-3">
+                          {hasAccess ? (
+                            <span className="inline-flex items-center rounded-sm bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
+                              {isAdmin && !project.memberIds.includes(currentUser.id)
+                                ? "Admin Access"
+                                : "Member"}
+                            </span>
+                          ) : (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-sm bg-canvas border border-border px-2 py-0.5 text-xs font-medium text-ink-faint"
+                              title="You are not a member of this project"
+                            >
+                              <LockIcon />
+                              Locked
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-ink-muted">
+                          {members.length ? members.map((m) => m.name).join(", ") : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-ink-muted">{formatDate(project.startDate)}</td>
+                        <td className="px-4 py-3 text-ink-muted">{formatDate(project.deadline)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </Panel>
         )}
       </div>

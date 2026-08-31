@@ -108,14 +108,14 @@ export default function TasksPage() {
               placeholder="Search task, project, or assignee..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input w-56 text-xs"
+              className="input w-full sm:w-56 text-xs"
             />
 
             {/* Assignee Filter */}
             <select
               value={assigneeFilter}
               onChange={(e) => setAssigneeFilter(e.target.value)}
-              className="input w-auto text-xs"
+              className="input w-full sm:w-auto text-xs"
             >
               <option value="all">All Assignees</option>
               <option value="unassigned">Unassigned</option>
@@ -130,7 +130,7 @@ export default function TasksPage() {
             <select
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
-              className="input w-auto text-xs"
+              className="input w-full sm:w-auto text-xs"
             >
               <option value="all">All Projects</option>
               {projects.map((p) => (
@@ -144,7 +144,7 @@ export default function TasksPage() {
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="input w-auto text-xs"
+              className="input w-full sm:w-auto text-xs"
             >
               <option value="all">All Priorities</option>
               <option value="Low">Low</option>
@@ -157,7 +157,7 @@ export default function TasksPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="input w-auto text-xs"
+              className="input w-full sm:w-auto text-xs"
             >
               <option value="all">All Statuses</option>
               <option value="To Do">To Do</option>
@@ -203,76 +203,78 @@ export default function TasksPage() {
           />
         ) : (
           <Panel noPadding>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-faint">
-                  <th className="px-4 py-2 font-medium">Task</th>
-                  <th className="px-4 py-2 font-medium">Project</th>
-                  {isAdmin && <th className="px-4 py-2 font-medium">Assignee</th>}
-                  <th className="px-4 py-2 font-medium">Priority</th>
-                  <th className="px-4 py-2 font-medium">Status</th>
-                  <th className="px-4 py-2 font-medium">Deadline</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedTasks.map((task) => {
-                  const project = projects.find((p) => p.id === task.projectId);
-                  const assignee = employees.find((e) => e.id === task.assigneeId);
-                  const overdue = isOverdue(task.deadline, task.status);
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-faint">
+                    <th className="px-4 py-2 font-medium">Task</th>
+                    <th className="px-4 py-2 font-medium">Project</th>
+                    {isAdmin && <th className="px-4 py-2 font-medium">Assignee</th>}
+                    <th className="px-4 py-2 font-medium">Priority</th>
+                    <th className="px-4 py-2 font-medium">Status</th>
+                    <th className="px-4 py-2 font-medium">Deadline</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedTasks.map((task) => {
+                    const project = projects.find((p) => p.id === task.projectId);
+                    const assignee = employees.find((e) => e.id === task.assigneeId);
+                    const overdue = isOverdue(task.deadline, task.status);
 
-                  return (
-                    <tr key={task.id} className="border-b border-border last:border-0 hover:bg-canvas">
-                      <td className="px-4 py-3">
-                        <Link
-                          href={`/tasks/${task.id}`}
-                          className="font-medium text-ink hover:text-brand-600 hover:underline inline-flex items-center gap-1.5"
-                        >
-                          {task.name}
-                        </Link>
-                        {task.progress > 0 && task.status !== "Completed" && (
-                          <span className="text-[11px] text-ink-faint ml-1">
-                            ({task.progress}%)
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-ink-muted">
-                        {project ? (
-                          <Link href={`/projects/${project.id}`} className="hover:text-brand-600 hover:underline">
-                            {project.name}
+                    return (
+                      <tr key={task.id} className="border-b border-border last:border-0 hover:bg-canvas">
+                        <td className="px-4 py-3">
+                          <Link
+                            href={`/tasks/${task.id}`}
+                            className="font-medium text-ink hover:text-brand-600 hover:underline inline-flex items-center gap-1.5"
+                          >
+                            {task.name}
                           </Link>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      {isAdmin && (
-                        <td className="px-4 py-3 text-ink-muted">
-                          {assignee ? (
-                            <span className="inline-flex items-center gap-1.5">
-                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-[10px] font-bold text-brand-700">
-                                {assignee.initials}
-                              </span>
-                              {assignee.name}
+                          {task.progress > 0 && task.status !== "Completed" && (
+                            <span className="text-[11px] text-ink-faint ml-1">
+                              ({task.progress}%)
                             </span>
-                          ) : (
-                            <span className="text-ink-faint italic">Unassigned</span>
                           )}
                         </td>
-                      )}
-                      <td className="px-4 py-3">
-                        <PriorityBadge priority={task.priority} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={task.status} />
-                      </td>
-                      <td className={`px-4 py-3 ${overdue ? "font-semibold text-status-notsubmitted" : "text-ink-muted"}`}>
-                        {formatDate(task.deadline)}
-                        {overdue && " (Overdue)"}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        <td className="px-4 py-3 text-ink-muted">
+                          {project ? (
+                            <Link href={`/projects/${project.id}`} className="hover:text-brand-600 hover:underline">
+                              {project.name}
+                            </Link>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        {isAdmin && (
+                          <td className="px-4 py-3 text-ink-muted">
+                            {assignee ? (
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-[10px] font-bold text-brand-700">
+                                  {assignee.initials}
+                                </span>
+                                {assignee.name}
+                              </span>
+                            ) : (
+                              <span className="text-ink-faint italic">Unassigned</span>
+                            )}
+                          </td>
+                        )}
+                        <td className="px-4 py-3">
+                          <PriorityBadge priority={task.priority} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge status={task.status} />
+                        </td>
+                        <td className={`px-4 py-3 ${overdue ? "font-semibold text-status-notsubmitted" : "text-ink-muted"}`}>
+                          {formatDate(task.deadline)}
+                          {overdue && " (Overdue)"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </Panel>
         )}
       </div>

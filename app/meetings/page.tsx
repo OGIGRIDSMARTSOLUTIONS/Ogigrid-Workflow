@@ -31,6 +31,7 @@ export default function MeetingsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [deleteTarget, setDeleteTarget] = useState<Meeting | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   if (!currentUser) return null;
   const isAdmin = currentUser.role === "Admin";
@@ -75,8 +76,9 @@ export default function MeetingsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.title.trim() || !currentUser) return;
+    if (!form.title.trim() || !currentUser || submitting) return;
     const payload = { ...form, projectId: form.projectId || null };
+    setSubmitting(true);
     try {
       if (editingId) {
         await updateMeeting(editingId, payload);
@@ -88,6 +90,8 @@ export default function MeetingsPage() {
       setModalOpen(false);
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Unable to save meeting.", "error");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -306,11 +310,23 @@ export default function MeetingsPage() {
               />
             </Field>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <SecondaryButton type="button" onClick={() => setModalOpen(false)}>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+              <SecondaryButton
+                type="button"
+                onClick={() => setModalOpen(false)}
+                disabled={submitting}
+                className="w-full sm:w-auto"
+              >
                 Cancel
               </SecondaryButton>
-              <PrimaryButton type="submit">{editingId ? "Save Changes" : "Add Meeting"}</PrimaryButton>
+              <PrimaryButton
+                type="submit"
+                loading={submitting}
+                loadingText={editingId ? "Saving changes..." : "Scheduling meeting..."}
+                className="w-full sm:w-auto"
+              >
+                {editingId ? "Save Changes" : "Add Meeting"}
+              </PrimaryButton>
             </div>
           </form>
         </Modal>

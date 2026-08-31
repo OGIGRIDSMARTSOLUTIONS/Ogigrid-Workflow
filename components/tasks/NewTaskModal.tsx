@@ -196,11 +196,13 @@ export function NewTaskModal({ projectId: fixedProjectId, onClose, onCreated }: 
           </select>
         </Field>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <SecondaryButton type="button" onClick={onClose}>
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+          <SecondaryButton type="button" onClick={onClose} disabled={submitting} className="w-full sm:w-auto">
             Cancel
           </SecondaryButton>
-          <PrimaryButton type="submit" disabled={submitting}>Create Task</PrimaryButton>
+          <PrimaryButton type="submit" loading={submitting} loadingText="Creating task..." className="w-full sm:w-auto">
+            Create Task
+          </PrimaryButton>
         </div>
       </form>
     </Modal>

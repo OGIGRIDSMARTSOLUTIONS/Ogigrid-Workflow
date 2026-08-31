@@ -26,6 +26,7 @@ export default function DailyReportsPage() {
   const { showToast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [tab, setTab] = useState<"all" | "mine">("all");
   const [viewScope, setViewScope] = useState<"latest" | "all_history">("latest");
   const [search, setSearch] = useState("");
@@ -40,13 +41,17 @@ export default function DailyReportsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!currentUser) return;
+    if (!currentUser || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await addDailyReport(form);
       showToast("Daily report submitted successfully. Well done!");
       setModalOpen(false);
+      setForm(emptyForm);
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Unable to submit report.", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -402,11 +407,23 @@ export default function DailyReportsPage() {
               />
             </Field>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <SecondaryButton type="button" onClick={() => setModalOpen(false)}>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+              <SecondaryButton
+                type="button"
+                onClick={() => setModalOpen(false)}
+                disabled={isSubmitting}
+                className="w-full sm:w-auto"
+              >
                 Cancel
               </SecondaryButton>
-              <PrimaryButton type="submit">Submit Report</PrimaryButton>
+              <PrimaryButton
+                type="submit"
+                loading={isSubmitting}
+                loadingText="Submitting report..."
+                className="w-full sm:w-auto"
+              >
+                Submit Report
+              </PrimaryButton>
             </div>
           </form>
         </Modal>

@@ -224,114 +224,116 @@ export default function DocumentsPage() {
           />
         ) : (
           <Panel noPadding>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-faint">
-                  <th className="px-4 py-2 font-medium">Document</th>
-                  <th className="px-4 py-2 font-medium">Project</th>
-                  <th className="px-4 py-2 font-medium">Size</th>
-                  <th className="px-4 py-2 font-medium">Last updated</th>
-                  <th className="px-4 py-2 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {documents.map((doc) => {
-                  const project = projects.find((p) => p.id === doc.projectId);
-                  const hasAccess = isAdmin || (project ? project.memberIds.includes(currentUser.id) : false);
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[650px] text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-faint">
+                    <th className="px-4 py-2 font-medium">Document</th>
+                    <th className="px-4 py-2 font-medium">Project</th>
+                    <th className="px-4 py-2 font-medium">Size</th>
+                    <th className="px-4 py-2 font-medium">Last updated</th>
+                    <th className="px-4 py-2 font-medium text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {documents.map((doc) => {
+                    const project = projects.find((p) => p.id === doc.projectId);
+                    const hasAccess = isAdmin || (project ? project.memberIds.includes(currentUser.id) : false);
 
-                  return (
-                    <tr
-                      key={doc.id}
-                      className={`border-b border-border last:border-0 ${
-                        !hasAccess ? "bg-canvas/40" : "hover:bg-canvas"
-                      }`}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-start gap-2.5">
-                          <span className="text-lg leading-none mt-0.5">
-                            {getFileIcon(doc.mimeType, doc.fileName || doc.name)}
-                          </span>
-                          <div>
-                            <p className="font-medium text-ink">{doc.name}</p>
-                            {doc.fileName && doc.fileName !== doc.name && (
-                              <p className="text-[11px] text-ink-faint">{doc.fileName}</p>
+                    return (
+                      <tr
+                        key={doc.id}
+                        className={`border-b border-border last:border-0 ${
+                          !hasAccess ? "bg-canvas/40" : "hover:bg-canvas"
+                        }`}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-start gap-2.5">
+                            <span className="text-lg leading-none mt-0.5">
+                              {getFileIcon(doc.mimeType, doc.fileName || doc.name)}
+                            </span>
+                            <div>
+                              <p className="font-medium text-ink">{doc.name}</p>
+                              {doc.fileName && doc.fileName !== doc.name && (
+                                <p className="text-[11px] text-ink-faint">{doc.fileName}</p>
+                              )}
+                              {doc.description && (
+                                <p className="mt-0.5 max-w-sm truncate text-xs text-ink-faint">
+                                  {doc.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {project ? (
+                            hasAccess ? (
+                              <Link
+                                href={`/projects/${project.id}`}
+                                className="font-medium text-brand-600 hover:underline"
+                              >
+                                {project.name}
+                              </Link>
+                            ) : (
+                              <span className="text-ink-muted inline-flex items-center gap-1">
+                                {project.name}
+                                <span className="text-[10px] text-ink-faint">(Locked)</span>
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-status-notsubmitted font-medium">Missing Project</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-ink-muted">
+                          {formatFileSize(doc.fileSize) || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-ink-muted">{formatDateTime(doc.updatedAt)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {hasAccess ? (
+                              <>
+                                <button
+                                  onClick={() => handleViewDocument(doc)}
+                                  className="rounded bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-colors inline-flex items-center gap-1"
+                                  title="Open & view document in browser"
+                                >
+                                  👁️ View
+                                </button>
+                                <button
+                                  onClick={() => handleDownloadDocument(doc)}
+                                  className="rounded bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors inline-flex items-center gap-1"
+                                  title="Download file to device"
+                                >
+                                  📥 Download
+                                </button>
+                              </>
+                            ) : (
+                              <span
+                                className="inline-flex items-center gap-1 rounded bg-canvas border border-border px-2 py-0.5 text-xs text-ink-faint"
+                                title="You are not a member of this project"
+                              >
+                                🔒 Inaccessible
+                              </span>
                             )}
-                            {doc.description && (
-                              <p className="mt-0.5 max-w-sm truncate text-xs text-ink-faint">
-                                {doc.description}
-                              </p>
+                            {hasAccess && (
+                              <button
+                                onClick={() => openEdit(doc)}
+                                className="text-xs font-medium text-brand-600 hover:underline ml-1"
+                              >
+                                Edit
+                              </button>
+                            )}
+                            {(isAdmin || hasAccess) && (
+                              <DangerLink onClick={() => setDeleteTarget(doc)}>Delete</DangerLink>
                             )}
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {project ? (
-                          hasAccess ? (
-                            <Link
-                              href={`/projects/${project.id}`}
-                              className="font-medium text-brand-600 hover:underline"
-                            >
-                              {project.name}
-                            </Link>
-                          ) : (
-                            <span className="text-ink-muted inline-flex items-center gap-1">
-                              {project.name}
-                              <span className="text-[10px] text-ink-faint">(Locked)</span>
-                            </span>
-                          )
-                        ) : (
-                          <span className="text-status-notsubmitted font-medium">Missing Project</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-ink-muted">
-                        {formatFileSize(doc.fileSize) || "—"}
-                      </td>
-                      <td className="px-4 py-3 text-ink-muted">{formatDateTime(doc.updatedAt)}</td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {hasAccess ? (
-                            <>
-                              <button
-                                onClick={() => handleViewDocument(doc)}
-                                className="rounded bg-blue-50 border border-blue-200 px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-colors inline-flex items-center gap-1"
-                                title="Open & view document in browser"
-                              >
-                                👁️ View
-                              </button>
-                              <button
-                                onClick={() => handleDownloadDocument(doc)}
-                                className="rounded bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors inline-flex items-center gap-1"
-                                title="Download file to device"
-                              >
-                                📥 Download
-                              </button>
-                            </>
-                          ) : (
-                            <span
-                              className="inline-flex items-center gap-1 rounded bg-canvas border border-border px-2 py-0.5 text-xs text-ink-faint"
-                              title="You are not a member of this project"
-                            >
-                              🔒 Inaccessible
-                            </span>
-                          )}
-                          {hasAccess && (
-                            <button
-                              onClick={() => openEdit(doc)}
-                              className="text-xs font-medium text-brand-600 hover:underline ml-1"
-                            >
-                              Edit
-                            </button>
-                          )}
-                          {(isAdmin || hasAccess) && (
-                            <DangerLink onClick={() => setDeleteTarget(doc)}>Delete</DangerLink>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </Panel>
         )}
       </div>
@@ -401,12 +403,22 @@ export default function DocumentsPage() {
               />
             </Field>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <SecondaryButton type="button" onClick={() => setModalOpen(false)}>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+              <SecondaryButton
+                type="button"
+                onClick={() => setModalOpen(false)}
+                disabled={uploading}
+                className="w-full sm:w-auto"
+              >
                 Cancel
               </SecondaryButton>
-              <PrimaryButton type="submit" disabled={uploading}>
-                {uploading ? "Saving..." : editingId ? "Save Changes" : "Upload Document"}
+              <PrimaryButton
+                type="submit"
+                loading={uploading}
+                loadingText={editingId ? "Saving changes..." : "Uploading document..."}
+                className="w-full sm:w-auto"
+              >
+                {editingId ? "Save Changes" : "Upload Document"}
               </PrimaryButton>
             </div>
           </form>

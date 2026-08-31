@@ -132,19 +132,19 @@ export function TeamWorkloadPanel({
       <div className="space-y-4">
         {/* Filter & Search Bar */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-3">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
             <input
               type="text"
               placeholder="Search member, task, or project..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input w-64 text-sm"
+              className="input w-full sm:w-64 text-xs sm:text-sm"
             />
             {allDepartments.length > 0 && (
               <select
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
-                className="input w-auto text-sm"
+                className="input w-full sm:w-auto text-xs sm:text-sm"
               >
                 <option value="All">All Departments</option>
                 {allDepartments.map((dept) => (
@@ -156,11 +156,11 @@ export function TeamWorkloadPanel({
             )}
           </div>
 
-          <div className="flex items-center gap-1 text-xs">
-            <span className="text-ink-faint mr-1 font-medium">Show:</span>
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <span className="text-ink-faint mr-1 font-medium hidden sm:inline">Show:</span>
             <button
               onClick={() => setSelectedStatusFilter("active")}
-              className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
                 selectedStatusFilter === "active"
                   ? "bg-[#0B1120] text-white shadow-sm"
                   : "bg-panel text-ink-muted border border-border hover:bg-canvas"
@@ -170,7 +170,7 @@ export function TeamWorkloadPanel({
             </button>
             <button
               onClick={() => setSelectedStatusFilter("blocked")}
-              className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
                 selectedStatusFilter === "blocked"
                   ? "bg-amber-700 text-white shadow-sm"
                   : "bg-panel text-ink-muted border border-border hover:bg-canvas"
@@ -180,7 +180,7 @@ export function TeamWorkloadPanel({
             </button>
             <button
               onClick={() => setSelectedStatusFilter("overdue")}
-              className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
                 selectedStatusFilter === "overdue"
                   ? "bg-rose-700 text-white shadow-sm"
                   : "bg-panel text-ink-muted border border-border hover:bg-canvas"
@@ -190,7 +190,7 @@ export function TeamWorkloadPanel({
             </button>
             <button
               onClick={() => setSelectedStatusFilter("all")}
-              className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
                 selectedStatusFilter === "all"
                   ? "bg-[#0B1120] text-white shadow-sm"
                   : "bg-panel text-ink-muted border border-border hover:bg-canvas"
