@@ -101,7 +101,7 @@ export function NewTaskModal({ projectId: fixedProjectId, onClose, onCreated }: 
           />
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field
             label="Assigned employee"
             hint={employees.length === 0 ? "Add employees first to assign this task." : undefined}
@@ -134,7 +134,7 @@ export function NewTaskModal({ projectId: fixedProjectId, onClose, onCreated }: 
           </Field>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Field label="Start date">
             <input
               type="date"

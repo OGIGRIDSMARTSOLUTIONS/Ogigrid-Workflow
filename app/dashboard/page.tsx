@@ -57,10 +57,10 @@ export default function DashboardPage() {
 
   // Unified team overview metrics
   const metrics = [
-    { label: "Active Team Members", value: activeEmployees.length },
-    { label: "Active Tasks", value: activeTasks.length },
-    { label: "Blocked / In Review", value: blockedOrReviewTasks.length },
-    { label: "Active Projects", value: activeProjects.length },
+    { label: "Active Team Members", value: activeEmployees.length, href: "/employees" },
+    { label: "Active Tasks", value: activeTasks.length, href: "/tasks?view=active" },
+    { label: "Blocked / In Review", value: blockedOrReviewTasks.length, href: "/tasks?view=blocked" },
+    { label: "Active Projects", value: activeProjects.length, href: "/projects" },
   ];
 
   const projectRows = activeProjects.map((project) => {

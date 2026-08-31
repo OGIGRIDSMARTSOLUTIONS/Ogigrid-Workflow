@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Panel } from "@/components/ui/Panel";
@@ -22,6 +22,16 @@ export default function TasksPage() {
   const [projectFilter, setProjectFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Supports the dashboard's KPI cards linking in with a pre-applied quick
+  // filter, e.g. /tasks?view=active or /tasks?view=blocked. Read directly
+  // from window.location instead of next/navigation's useSearchParams so
+  // this page doesn't need a Suspense boundary just for this.
+  useEffect(() => {
+    const view = new URLSearchParams(window.location.search).get("view");
+    if (view === "active") setStatusFilter("__active__");
+    if (view === "blocked") setStatusFilter("__blocked_review__");
+  }, []);
 
   if (!currentUser) return null;
   const isAdmin = currentUser.role === "Admin";
@@ -50,8 +60,16 @@ export default function TasksPage() {
       // Priority filter
       if (priorityFilter !== "all" && task.priority !== priorityFilter) return false;
 
-      // Status filter
-      if (statusFilter !== "all" && task.status !== statusFilter) return false;
+      // Status filter — "__active__" and "__blocked_review__" are quick
+      // filters matching the dashboard's own KPI categorization (each
+      // covers two underlying statuses), not real TaskStatus values.
+      if (statusFilter === "__active__") {
+        if (task.status !== "To Do" && task.status !== "In Progress") return false;
+      } else if (statusFilter === "__blocked_review__") {
+        if (task.status !== "Blocked" && task.status !== "Review") return false;
+      } else if (statusFilter !== "all" && task.status !== statusFilter) {
+        return false;
+      }
 
       // Search query
       if (search.trim()) {
@@ -160,6 +178,8 @@ export default function TasksPage() {
               className="input w-full sm:w-auto text-xs"
             >
               <option value="all">All Statuses</option>
+              <option value="__active__">Active (To Do + In Progress)</option>
+              <option value="__blocked_review__">Blocked / In Review</option>
               <option value="To Do">To Do</option>
               <option value="In Progress">In Progress</option>
               <option value="Review">Review</option>
