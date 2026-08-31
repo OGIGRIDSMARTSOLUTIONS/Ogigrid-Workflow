@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { MetricsRow } from "@/components/dashboard/MetricsRow";
-import { TeamWorkloadPanel } from "@/components/dashboard/TeamWorkloadPanel";
-import { ActiveProjectsPanel } from "@/components/dashboard/ActiveProjectsPanel";
+import { ProjectFocusPanel } from "@/components/dashboard/ProjectFocusPanel";
 import { DailyReportsPanel } from "@/components/dashboard/DailyReportsPanel";
 import { MeetingsPanel } from "@/components/dashboard/MeetingsPanel";
 import { DocumentsPanel } from "@/components/dashboard/DocumentsPanel";
@@ -66,25 +65,11 @@ export default function DashboardPage() {
 
   // Unified team overview metrics
   const metrics = [
-    { label: "Active Team Members", value: activeEmployees.length },
-    { label: "Active Tasks", value: activeTasks.length },
-    { label: "Blocked / In Review", value: blockedOrReviewTasks.length },
-    { label: "Active Projects", value: activeProjects.length },
+    { label: "Active Team Members", value: activeEmployees.length, href: "/employees" },
+    { label: "Active Tasks", value: activeTasks.length, href: "/tasks?view=active" },
+    { label: "Blocked / In Review", value: blockedOrReviewTasks.length, href: "/tasks?view=blocked" },
+    { label: "Active Projects", value: activeProjects.length, href: "/projects" },
   ];
-
-  const projectRows = activeProjects.map((project) => {
-    const projectTasks = tasks.filter((t) => t.projectId === project.id);
-    const progress = computeProjectProgress(projectTasks);
-    const hasAccess = isAdmin || project.memberIds.includes(currentUser.id);
-    return {
-      id: project.id,
-      name: project.name,
-      progress,
-      status: project.status,
-      deadline: project.deadline,
-      hasAccess,
-    };
-  });
 
   return (
     <AppShell
@@ -124,12 +109,12 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           {/* Left 2 Columns: Main Workload & Active Projects */}
           <div className="space-y-6 xl:col-span-2">
-            <TeamWorkloadPanel
-              employees={employees}
+            <ProjectFocusPanel
+              projects={activeProjects}
               tasks={tasks}
-              projects={projects}
+              employees={employees}
+              documents={documents}
             />
-            <ActiveProjectsPanel projects={projectRows} />
           </div>
 
           {/* Right Column: Daily Reports, Meetings, Documents, and Activity Feed */}

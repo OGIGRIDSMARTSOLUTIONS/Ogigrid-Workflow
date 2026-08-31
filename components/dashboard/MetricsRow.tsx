@@ -1,6 +1,9 @@
+import Link from "next/link";
+
 interface Metric {
   label: string;
   value: number;
+  href?: string;
 }
 
 const metricAccents: Record<string, { topBorder: string; bg: string; text: string; icon: string }> = {
@@ -42,9 +45,13 @@ export function MetricsRow({ metrics }: { metrics: Metric[] }) {
         };
 
         return (
-          <div
+          <Link
             key={metric.label}
-            className={`rounded-lg border border-border bg-panel p-4 shadow-subtle ${accent.topBorder} transition-all hover:border-slate-300 hover:shadow-md`}
+            href={metric.href ?? "#"}
+            aria-disabled={!metric.href}
+            className={`block rounded-lg border border-border bg-panel p-4 shadow-subtle ${accent.topBorder} transition-all hover:border-slate-300 hover:shadow-md ${
+              metric.href ? "cursor-pointer" : "pointer-events-none"
+            }`}
           >
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint">
@@ -55,7 +62,7 @@ export function MetricsRow({ metrics }: { metrics: Metric[] }) {
               </span>
             </div>
             <p className="mt-2 text-2xl font-bold tracking-tight text-ink">{metric.value}</p>
-          </div>
+          </Link>
         );
       })}
     </div>
