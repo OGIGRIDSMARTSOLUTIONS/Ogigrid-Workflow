@@ -36,6 +36,7 @@ export function mapEmployee(row: any) {
     initials: initialsFromName(displayName || "?"),
     role: row.role,
     email: row.email,
+    jobTitle: (row.job_title ?? "").trim(),
     departments: row.departments ?? [],
     status: row.status,
     isPrimaryAdmin: row.is_primary_admin,

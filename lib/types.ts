@@ -19,6 +19,7 @@ export interface Employee {
   initials: string;
   role: Role;
   email: string;
+  jobTitle: string;
   departments: Department[];
   status: EmployeeStatus;
   isPrimaryAdmin?: boolean; // the workspace's permanent Owner — created at signup, cannot be removed/demoted

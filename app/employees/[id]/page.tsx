@@ -239,29 +239,19 @@ export default function EmployeeProfilePage() {
                   {employee.initials}
                 </div>
                 <div>
-                  <p className="font-semibold text-ink flex items-center gap-1.5">
-                    {employee.name}
-                    {employee.isPrimaryAdmin && (
-                      <span className="rounded-sm bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700">
-                        Lead
-                      </span>
-                    )}
+                  <p className="font-semibold text-ink">{employee.name}</p>
+                  <p className="text-xs text-brand-700 font-medium mt-0.5">
+                    {employee.jobTitle?.trim() ||
+                      (employee.isPrimaryAdmin ? "Lead" : employee.role === "Admin" ? "Administrator" : "Partner")}
                   </p>
                 </div>
               </div>
 
               <InfoRow label="Work Email">{employee.email || "—"}</InfoRow>
 
-              <InfoRow label="Departments">
-                {employee.departments.length ? (
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    {employee.departments.map((dept) => (
-                      <DepartmentBadge key={dept} name={dept} />
-                    ))}
-                  </div>
-                ) : (
-                  "—"
-                )}
+              <InfoRow label="Role">
+                {employee.jobTitle?.trim() ||
+                  (employee.isPrimaryAdmin ? "Lead" : employee.role === "Admin" ? "Administrator" : "Partner")}
               </InfoRow>
 
               <InfoRow label="Account Status">
@@ -282,7 +272,7 @@ export default function EmployeeProfilePage() {
                   onClick={() => router.push("/employees")}
                   className="w-full mt-2"
                 >
-                  Manage in Partners List
+                  Manage in Employees List
                 </SecondaryButton>
               )}
             </div>
@@ -299,13 +289,10 @@ export default function EmployeeProfilePage() {
                 </div>
                 <div>
                   <h3 className="text-base font-semibold text-ink">{employee.name}</h3>
-                  {employee.isPrimaryAdmin && (
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="rounded-sm bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700">
-                        Lead
-                      </span>
-                    </div>
-                  )}
+                  <p className="text-xs text-brand-700 font-medium mt-0.5">
+                    {employee.jobTitle?.trim() ||
+                      (employee.isPrimaryAdmin ? "Lead" : employee.role === "Admin" ? "Administrator" : "Partner")}
+                  </p>
                 </div>
               </div>
 
@@ -314,22 +301,11 @@ export default function EmployeeProfilePage() {
                   <span className="text-ink font-medium">{employee.email || "—"}</span>
                 </InfoRow>
 
-                <InfoRow label="Account Role">
-                  <span className="text-ink">{employee.role}</span>
+                <InfoRow label="Role">
+                  {employee.jobTitle?.trim() ||
+                    (employee.isPrimaryAdmin ? "Lead" : employee.role === "Admin" ? "Administrator" : "Partner")}
                 </InfoRow>
               </div>
-
-              <InfoRow label="Departments">
-                {employee.departments.length ? (
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    {employee.departments.map((dept) => (
-                      <DepartmentBadge key={dept} name={dept} />
-                    ))}
-                  </div>
-                ) : (
-                  <span className="text-ink-faint">—</span>
-                )}
-              </InfoRow>
 
               <div className="pt-2 border-t border-border flex items-center justify-between text-xs text-ink-faint">
                 <span>Status: <strong className="text-ink font-medium">{employee.status}</strong></span>

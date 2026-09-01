@@ -86,6 +86,7 @@ export async function createEmployee(input: {
   departments: string[];
   status: "Active" | "Inactive";
   isPrimaryAdmin?: boolean;
+  jobTitle?: string;
 }) {
   const legacyName = (input.name ?? "").trim();
   const legacyParts = legacyName ? legacyName.split(/\s+/).filter(Boolean) : [];
@@ -94,18 +95,19 @@ export async function createEmployee(input: {
   const name = [firstName, lastName].filter(Boolean).join(" ").trim() || legacyName || "Unknown";
   const passwordHash = await hashPassword(input.password);
   const row = await queryOne<any>(
-    `INSERT INTO employees (name, first_name, last_name, email, password_hash, role, departments, status, is_primary_admin)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+    `INSERT INTO employees (name, first_name, last_name, email, password_hash, role, departments, status, is_primary_admin, job_title)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
     [
      name,
      firstName,
      lastName,
      input.email,
      passwordHash,
-     input.role,
-     input.departments,
-     input.status,
-     !!input.isPrimaryAdmin,
+      input.role,
+      input.departments,
+      input.status,
+      !!input.isPrimaryAdmin,
+      (input.jobTitle ?? "").trim(),
     ]
   );
   return mapEmployee(row);
@@ -122,6 +124,7 @@ export async function updateEmployee(
     role: "Admin" | "Employee";
     departments: string[];
     status: "Active" | "Inactive";
+    jobTitle: string;
   }>
 ) {
   const existing = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [id]);
@@ -141,8 +144,8 @@ export async function updateEmployee(
   const row = await queryOne<any>(
     `UPDATE employees SET
        name = $1, first_name = $2, last_name = $3, email = $4, password_hash = $5, role = $6,
-       departments = $7, status = $8
-     WHERE id = $9 RETURNING *`,
+       departments = $7, status = $8, job_title = $9
+     WHERE id = $10 RETURNING *`,
     [
      nextName,
      nextFirstName,
@@ -152,6 +155,7 @@ export async function updateEmployee(
      role,
      patch.departments ?? existing.departments,
      status,
+     patch.jobTitle !== undefined ? patch.jobTitle.trim() : (existing.job_title ?? ""),
      id,
     ]
   );
@@ -967,6 +971,14 @@ export async function updateDailyReport(
 
 export async function listReportComments() {
   const rows = await query<any>(`SELECT * FROM daily_report_comments ORDER BY created_at ASC`);
+  return rows.map(mapReportComment);
+}
+
+export async function listDailyReportComments(reportId: string) {
+  const rows = await query<any>(
+    `SELECT * FROM daily_report_comments WHERE report_id = $1 ORDER BY created_at ASC`,
+    [reportId]
+  );
   return rows.map(mapReportComment);
 }
 

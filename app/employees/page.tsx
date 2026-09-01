@@ -9,18 +9,31 @@ import { EmptyState, Field, PrimaryButton, SecondaryButton, DangerLink } from "@
 import { useApp, EmployeeRemovalStrategy } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
-import { departmentSuggestions } from "@/lib/data";
-import { DepartmentBadge } from "@/components/ui/StatusBadge";
 import { Employee, EmployeeStatus, Role } from "@/lib/types";
 
 const emptyForm = {
   name: "",
   email: "",
   password: "",
+  jobTitle: "",
   departments: [] as string[],
   status: "Active" as EmployeeStatus,
   accountRole: "Employee" as Role,
 };
+
+function roleBadgeClass(employee: Employee) {
+  if (employee.role === "Admin" || employee.isPrimaryAdmin) {
+    return "bg-brand-100 text-brand-700";
+  }
+  return "bg-slate-100 text-slate-700";
+}
+
+function displayJobTitle(employee: Employee) {
+  if (employee.jobTitle?.trim()) return employee.jobTitle.trim();
+  if (employee.isPrimaryAdmin) return "Lead";
+  if (employee.role === "Admin") return "Administrator";
+  return "Partner";
+}
 
 export default function EmployeesPage() {
   const { employees, tasks, addEmployee, updateEmployee, deleteEmployee } = useApp();
@@ -29,7 +42,6 @@ export default function EmployeesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
-  const [customDepartment, setCustomDepartment] = useState("");
   const [removalTarget, setRemovalTarget] = useState<Employee | null>(null);
   const [reassignTo, setReassignTo] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -40,7 +52,6 @@ export default function EmployeesPage() {
   function openCreate() {
     setEditingId(null);
     setForm(emptyForm);
-    setCustomDepartment("");
     setModalOpen(true);
   }
 
@@ -50,28 +61,12 @@ export default function EmployeesPage() {
       name: employee.name,
       email: employee.email,
       password: "",
+      jobTitle: employee.jobTitle ?? "",
       departments: employee.departments,
       status: employee.status,
       accountRole: employee.role,
     });
-    setCustomDepartment("");
     setModalOpen(true);
-  }
-
-  function toggleDepartment(dep: string) {
-    setForm((prev) => ({
-      ...prev,
-      departments: prev.departments.includes(dep)
-        ? prev.departments.filter((d) => d !== dep)
-        : [...prev.departments, dep],
-    }));
-  }
-
-  function addCustomDepartment() {
-    const dep = customDepartment.trim();
-    if (!dep || form.departments.includes(dep)) return;
-    setForm((prev) => ({ ...prev, departments: [...prev.departments, dep] }));
-    setCustomDepartment("");
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -81,7 +76,7 @@ export default function EmployeesPage() {
       if (editingId) {
         // Admin updates workspace-level attributes only
         const patch: Record<string, unknown> = {
-          departments: form.departments,
+          jobTitle: form.jobTitle.trim(),
           status: form.status,
           role: form.accountRole,
         };
@@ -103,7 +98,8 @@ export default function EmployeesPage() {
           role: form.accountRole,
           email: form.email,
           password: form.password,
-          departments: form.departments,
+          departments: [],
+          jobTitle: form.jobTitle.trim(),
           status: form.status,
         });
         showToast("Partner added successfully.");
@@ -145,12 +141,8 @@ export default function EmployeesPage() {
     }
   }
 
-  const allDepartments = Array.from(
-    new Set([...departmentSuggestions, ...employees.flatMap((e) => e.departments)])
-  );
-
   return (
-    <AppShell title="Partners" subtitle="Everyone on the Ogigrid team.">
+    <AppShell title="Employees" subtitle="Everyone on the Ogigrid team.">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <p className="text-sm text-ink-muted">
@@ -172,7 +164,7 @@ export default function EmployeesPage() {
                 <thead>
                   <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-faint">
                     <th className="px-4 py-2 font-medium">Name</th>
-                    <th className="px-4 py-2 font-medium">Departments</th>
+                    <th className="px-4 py-2 font-medium">Role</th>
                     <th className="px-4 py-2 font-medium">Email</th>
                     <th className="px-4 py-2 font-medium">Status</th>
                     {isAdmin && <th className="px-4 py-2 font-medium" />}
@@ -187,23 +179,14 @@ export default function EmployeesPage() {
                             {employee.initials}
                           </div>
                           <span className="font-medium text-ink hover:underline">{employee.name}</span>
-                          {employee.isPrimaryAdmin && (
-                            <span className="rounded-sm bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700">
-                              Lead
-                            </span>
-                          )}
                         </Link>
                       </td>
                       <td className="px-4 py-3">
-                        {employee.departments.length ? (
-                          <div className="flex flex-wrap gap-1">
-                            {employee.departments.map((dept) => (
-                              <DepartmentBadge key={dept} name={dept} />
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-ink-faint">—</span>
-                        )}
+                        <span
+                          className={`inline-flex items-center rounded-sm px-2 py-0.5 text-[11px] font-semibold ${roleBadgeClass(employee)}`}
+                        >
+                          {displayJobTitle(employee)}
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-ink-muted">{employee.email || "—"}</td>
                       <td className="px-4 py-3">
@@ -250,7 +233,7 @@ export default function EmployeesPage() {
       </div>
 
       {modalOpen && (
-        <Modal title={editingId ? "Edit Workspace Role & Departments" : "Add Partner"} onClose={() => setModalOpen(false)}>
+        <Modal title={editingId ? "Edit Role & Access" : "Add Employee"} onClose={() => setModalOpen(false)}>
           <form onSubmit={handleSubmit} className="space-y-4">
             {editingId ? (
               <div className="rounded-md border border-border bg-canvas/60 p-3 text-xs text-ink-muted space-y-1.5">
@@ -300,51 +283,25 @@ export default function EmployeesPage() {
               </>
             )}
 
-            <Field label="Account role">
+            <Field label="Job title" hint="Shown in the team list, e.g. Lead, Software Engineer.">
+              <input
+                className="input"
+                value={form.jobTitle}
+                onChange={(e) => setForm({ ...form, jobTitle: e.target.value })}
+                placeholder="e.g. Software Engineer"
+              />
+            </Field>
+
+            <Field label="Account access">
               <select
                 className="input"
                 value={form.accountRole}
                 disabled={editingId === currentUser.id && !!employees.find((e) => e.id === editingId)?.isPrimaryAdmin}
                 onChange={(e) => setForm({ ...form, accountRole: e.target.value as Role })}
               >
-                <option value="Employee">Partner</option>
-                <option value="Admin">Admin</option>
+                <option value="Employee">Standard access</option>
+                <option value="Admin">Administrator</option>
               </select>
-            </Field>
-            <Field label="Departments" hint="An employee can belong to more than one department.">
-              <div className="flex flex-wrap gap-2">
-                {allDepartments.map((dep) => (
-                  <button
-                    type="button"
-                    key={dep}
-                    onClick={() => toggleDepartment(dep)}
-                    className={`rounded-sm border px-2.5 py-1 text-xs font-medium transition-colors ${
-                      form.departments.includes(dep)
-                        ? "border-brand-400 bg-brand-50 text-brand-700"
-                        : "border-border bg-canvas text-ink-muted hover:border-brand-300"
-                    }`}
-                  >
-                    {dep}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-2 flex gap-2">
-                <input
-                  className="input"
-                  placeholder="Add another department"
-                  value={customDepartment}
-                  onChange={(e) => setCustomDepartment(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addCustomDepartment();
-                    }
-                  }}
-                />
-                <SecondaryButton type="button" onClick={addCustomDepartment}>
-                  Add
-                </SecondaryButton>
-              </div>
             </Field>
             <Field label="Status">
               <select

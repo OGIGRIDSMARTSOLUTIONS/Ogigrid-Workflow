@@ -15,6 +15,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     role: body.role,
     departments: body.departments,
     status: body.status,
+    jobTitle: typeof body.jobTitle === "string" ? body.jobTitle : undefined,
   });
 
   if (!employee) return NextResponse.json({ error: "Employee not found." }, { status: 404 });

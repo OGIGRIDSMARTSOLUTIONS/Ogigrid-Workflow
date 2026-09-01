@@ -62,6 +62,7 @@ interface AppActions {
     role: "Admin" | "Employee";
     departments: string[];
     status: "Active" | "Inactive";
+    jobTitle?: string;
   }) => Promise<Employee>;
   updateEmployee: (id: string, patch: Record<string, unknown>) => Promise<Employee>;
   deleteEmployee: (id: string, strategy: EmployeeRemovalStrategy) => Promise<void>;

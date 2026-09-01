@@ -25,6 +25,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "An account with that email already exists." }, { status: 409 });
   }
 
-  const employee = await createEmployee({ name, email, password, role, departments, status });
+  const employee = await createEmployee({
+    name,
+    email,
+    password,
+    role,
+    departments,
+    status,
+    jobTitle: typeof body.jobTitle === "string" ? body.jobTitle : "",
+  });
   return NextResponse.json({ employee });
 }
