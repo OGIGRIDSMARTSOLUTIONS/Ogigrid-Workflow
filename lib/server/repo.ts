@@ -8,6 +8,7 @@ import {
   mapMeeting,
   mapDocument,
   mapDailyReport,
+  mapReportComment,
   mapNotification,
   mapActivity,
 } from "./mappers";
@@ -917,6 +918,82 @@ export async function createDailyReport(input: {
     row.id
   );
   return mapDailyReport(row);
+}
+
+export async function findDailyReportById(id: string) {
+  return queryOne<any>(`SELECT * FROM daily_reports WHERE id = $1`, [id]);
+}
+
+// Only the report's own author or an Admin may edit it — enforced here,
+// not just by hiding the Edit button in the UI.
+export async function updateDailyReport(
+  id: string,
+  patch: Partial<{ date: string; workedOn: string; completed: string; remaining: string; blockers: string }>,
+  actorId: string,
+  isAdmin: boolean
+) {
+  const existing = await findDailyReportById(id);
+  if (!existing) return { ok: false as const, error: "Report not found." };
+  if (existing.employee_id !== actorId && !isAdmin) {
+    return { ok: false as const, error: "You can only edit your own report." };
+  }
+
+  const row = await queryOne<any>(
+    `UPDATE daily_reports SET
+       date = $1, worked_on = $2, completed = $3, remaining = $4, blockers = $5
+     WHERE id = $6 RETURNING *`,
+    [
+      patch.date ?? existing.date,
+      patch.workedOn ?? existing.worked_on,
+      patch.completed ?? existing.completed,
+      patch.remaining ?? existing.remaining,
+      patch.blockers ?? existing.blockers,
+      id,
+    ]
+  );
+  return { ok: true as const, report: mapDailyReport(row) };
+}
+
+// ---------------------------------------------------------------------
+// Daily report comments — anyone can comment on anyone's report.
+// ---------------------------------------------------------------------
+
+export async function listReportComments() {
+  const rows = await query<any>(`SELECT * FROM daily_report_comments ORDER BY created_at ASC`);
+  return rows.map(mapReportComment);
+}
+
+export async function createReportComment(reportId: string, employeeId: string, body: string) {
+  const row = await queryOne<any>(
+    `INSERT INTO daily_report_comments (report_id, employee_id, body) VALUES ($1,$2,$3) RETURNING *`,
+    [reportId, employeeId, body]
+  );
+
+  const report = await findDailyReportById(reportId);
+  if (report && report.employee_id !== employeeId) {
+    const commenter = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [employeeId]);
+    await notify(
+      report.employee_id,
+      "daily-report",
+      "New comment on your daily report",
+      `${commenter?.name ?? "Someone"} commented on your report for ${report.date}.`,
+      "report",
+      reportId
+    );
+  }
+
+  return mapReportComment(row);
+}
+
+// Only the comment's own author or an Admin may delete it.
+export async function deleteReportComment(id: string, actorId: string, isAdmin: boolean) {
+  const existing = await queryOne<any>(`SELECT * FROM daily_report_comments WHERE id = $1`, [id]);
+  if (!existing) return { ok: false as const, error: "Comment not found." };
+  if (existing.employee_id !== actorId && !isAdmin) {
+    return { ok: false as const, error: "You can only delete your own comment." };
+  }
+  await query(`DELETE FROM daily_report_comments WHERE id = $1`, [id]);
+  return { ok: true as const };
 }
 
 // ---------------------------------------------------------------------

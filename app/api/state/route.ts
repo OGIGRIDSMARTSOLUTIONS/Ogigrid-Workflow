@@ -7,6 +7,7 @@ import {
   listMeetings,
   listDocuments,
   listDailyReports,
+  listReportComments,
   listActivity,
   listNotificationsForUser,
 } from "@/lib/server/repo";
@@ -19,7 +20,7 @@ export async function GET() {
   const { user, error } = await requireAuth();
   if (error) return error;
 
-  const [employees, projects, tasks, meetings, documents, dailyReports, activity, notifications] =
+  const [employees, projects, tasks, meetings, documents, dailyReports, reportComments, activity, notifications] =
     await Promise.all([
       listEmployees(),
       listProjects(),
@@ -27,6 +28,7 @@ export async function GET() {
       listMeetings(),
       listDocuments(),
       listDailyReports(),
+      listReportComments(),
       listActivity(),
       listNotificationsForUser(user!.id),
     ]);
@@ -38,6 +40,7 @@ export async function GET() {
     meetings,
     documents,
     dailyReports,
+    reportComments,
     activity,
     notifications,
   });

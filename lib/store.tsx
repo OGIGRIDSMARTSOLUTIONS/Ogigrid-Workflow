@@ -9,6 +9,7 @@ import {
   Employee,
   Meeting,
   Project,
+  ReportComment,
   Task,
 } from "./types";
 import { useAuth } from "./auth";
@@ -20,6 +21,7 @@ interface AppState {
   meetings: Meeting[];
   documents: DocumentItem[];
   dailyReports: DailyReport[];
+  reportComments: ReportComment[];
   activity: ActivityItem[];
   notifications: AppNotification[];
 }
@@ -31,6 +33,7 @@ const emptyState: AppState = {
   meetings: [],
   documents: [],
   dailyReports: [],
+  reportComments: [],
   activity: [],
   notifications: [],
 };
@@ -99,6 +102,9 @@ interface AppActions {
   deleteDocument: (id: string) => Promise<void>;
 
   addDailyReport: (input: Record<string, unknown>) => Promise<DailyReport>;
+  updateDailyReport: (id: string, patch: Record<string, unknown>) => Promise<DailyReport>;
+  addReportComment: (reportId: string, body: string) => Promise<ReportComment>;
+  deleteReportComment: (reportId: string, commentId: string) => Promise<void>;
 
   markNotificationRead: (id: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
@@ -206,6 +212,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       addDailyReport: (input) =>
         mutate("/api/daily-reports", { method: "POST", body: JSON.stringify(input) }, (d) => d.report),
+      updateDailyReport: (id, patch) =>
+        mutate(`/api/daily-reports/${id}`, { method: "PATCH", body: JSON.stringify(patch) }, (d) => d.report),
+      addReportComment: (reportId, body) =>
+        mutate(
+          `/api/daily-reports/${reportId}/comments`,
+          { method: "POST", body: JSON.stringify({ body }) },
+          (d) => d.comment
+        ),
+      deleteReportComment: (reportId, commentId) =>
+        mutate(`/api/daily-reports/${reportId}/comments/${commentId}`, { method: "DELETE" }, () => undefined),
 
       markNotificationRead: (id) =>
         mutate(`/api/notifications/${id}/read`, { method: "PATCH" }, () => undefined),

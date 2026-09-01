@@ -115,6 +115,16 @@ export function mapDailyReport(row: any) {
   };
 }
 
+export function mapReportComment(row: any) {
+  return {
+    id: row.id,
+    reportId: row.report_id,
+    employeeId: row.employee_id,
+    body: row.body,
+    createdAt: toIsoTimestamp(row.created_at),
+  };
+}
+
 export function mapNotification(row: any) {
   return {
     id: row.id,

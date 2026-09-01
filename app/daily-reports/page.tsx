@@ -3,14 +3,15 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
-import { Panel } from "@/components/ui/Panel";
 import { Modal } from "@/components/ui/Modal";
 import { EmptyState, Field, PrimaryButton, SecondaryButton } from "@/components/ui/FormControls";
 import { DepartmentBadge } from "@/components/ui/StatusBadge";
+import { ReportComments } from "@/components/daily-reports/ReportComments";
 import { useApp } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
 import { formatDate, formatDateTime, todayIso } from "@/lib/data";
+import { DailyReport } from "@/lib/types";
 
 const emptyForm = {
   date: todayIso(),
@@ -20,8 +21,70 @@ const emptyForm = {
   blockers: "",
 };
 
+function ReportFields({
+  form,
+  setForm,
+  showEmployeeLabel,
+}: {
+  form: typeof emptyForm;
+  setForm: (f: typeof emptyForm) => void;
+  showEmployeeLabel?: string;
+}) {
+  return (
+    <>
+      {showEmployeeLabel && (
+        <Field label="Employee">
+          <p className="pt-1.5 text-sm font-medium text-ink">{showEmployeeLabel}</p>
+        </Field>
+      )}
+      <Field label="Date">
+        <input
+          type="date"
+          className="input"
+          value={form.date}
+          onChange={(e) => setForm({ ...form, date: e.target.value })}
+          required
+        />
+      </Field>
+      <Field label="What I worked on" hint="Describe tasks and activities tackled today.">
+        <textarea
+          className="input min-h-[70px] resize-none"
+          value={form.workedOn}
+          onChange={(e) => setForm({ ...form, workedOn: e.target.value })}
+          placeholder="e.g. Worked on the client authentication flow and UI components..."
+          required
+        />
+      </Field>
+      <Field label="What I completed" hint="List deliverables or finished pieces.">
+        <textarea
+          className="input min-h-[60px] resize-none"
+          value={form.completed}
+          onChange={(e) => setForm({ ...form, completed: e.target.value })}
+          placeholder="e.g. Completed unit tests for login API and resolved page export bug..."
+        />
+      </Field>
+      <Field label="What remains" hint="Note planned next steps for tomorrow.">
+        <textarea
+          className="input min-h-[60px] resize-none"
+          value={form.remaining}
+          onChange={(e) => setForm({ ...form, remaining: e.target.value })}
+          placeholder="e.g. Will integrate Stripe checkout and finalize mobile layout..."
+        />
+      </Field>
+      <Field label="Blockers" hint="Mention anything preventing progress.">
+        <textarea
+          className="input min-h-[60px] resize-none"
+          value={form.blockers}
+          onChange={(e) => setForm({ ...form, blockers: e.target.value })}
+          placeholder="e.g. Waiting for API credentials or design specs (leave blank if none)..."
+        />
+      </Field>
+    </>
+  );
+}
+
 export default function DailyReportsPage() {
-  const { dailyReports, employees, addDailyReport } = useApp();
+  const { dailyReports, reportComments, employees, addDailyReport, updateDailyReport } = useApp();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
@@ -29,14 +92,40 @@ export default function DailyReportsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tab, setTab] = useState<"all" | "mine">("all");
   const [viewScope, setViewScope] = useState<"latest" | "all_history">("latest");
+  const [viewMode, setViewMode] = useState<"cards" | "grid">("cards");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [search, setSearch] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
 
+  // Editing — owner or Admin only, enforced again server-side in the PATCH route.
+  const [editingReport, setEditingReport] = useState<DailyReport | null>(null);
+  const [editForm, setEditForm] = useState(emptyForm);
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+
+  // Grid view row expansion
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
   if (!currentUser) return null;
+  const isAdmin = currentUser.role === "Admin";
+
+  function canEdit(report: DailyReport) {
+    return isAdmin || report.employeeId === currentUser!.id;
+  }
 
   function openCreate() {
     setForm(emptyForm);
     setModalOpen(true);
+  }
+
+  function openEdit(report: DailyReport) {
+    setEditingReport(report);
+    setEditForm({
+      date: report.date,
+      workedOn: report.workedOn,
+      completed: report.completed,
+      remaining: report.remaining,
+      blockers: report.blockers,
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -52,6 +141,21 @@ export default function DailyReportsPage() {
       showToast(err instanceof Error ? err.message : "Unable to submit report.", "error");
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingReport || isEditSubmitting) return;
+    setIsEditSubmitting(true);
+    try {
+      await updateDailyReport(editingReport.id, editForm);
+      showToast("Report updated.");
+      setEditingReport(null);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Unable to update report.", "error");
+    } finally {
+      setIsEditSubmitting(false);
     }
   }
 
@@ -86,8 +190,10 @@ export default function DailyReportsPage() {
       });
     }
 
-    // Sort descending by submission time
-    const sorted = [...list].sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+    // Sort by submission time, direction controlled by sortOrder
+    const sorted = [...list].sort((a, b) =>
+      sortOrder === "desc" ? b.submittedAt.localeCompare(a.submittedAt) : a.submittedAt.localeCompare(b.submittedAt)
+    );
 
     // If 'latest' mode is chosen (default), show only each person's most recent report to avoid multiple duplicates/clutter
     if (viewScope === "latest" && !selectedDate && !search.trim()) {
@@ -103,7 +209,7 @@ export default function DailyReportsPage() {
     }
 
     return sorted;
-  }, [dailyReports, tab, currentUser.id, selectedDate, search, employees, viewScope]);
+  }, [dailyReports, tab, currentUser.id, selectedDate, search, employees, viewScope, sortOrder]);
 
   const avatarColors = [
     "bg-blue-100 text-blue-700 border-blue-200",
@@ -113,6 +219,11 @@ export default function DailyReportsPage() {
     "bg-amber-100 text-amber-800 border-amber-200",
     "bg-rose-100 text-rose-700 border-rose-200",
   ];
+
+  function truncate(text: string, max: number) {
+    if (!text) return "—";
+    return text.length > max ? `${text.slice(0, max)}…` : text;
+  }
 
   return (
     <AppShell
@@ -168,6 +279,16 @@ export default function DailyReportsPage() {
             title="Filter by report date"
           />
 
+          {/* Sort order toggle */}
+          <button
+            type="button"
+            onClick={() => setSortOrder((o) => (o === "desc" ? "asc" : "desc"))}
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-panel px-2.5 py-1.5 text-xs font-medium text-ink-muted hover:bg-canvas"
+            title="Toggle sort order by submission time"
+          >
+            {sortOrder === "desc" ? "Newest first ↓" : "Oldest first ↑"}
+          </button>
+
           {/* Scope Selector: Latest per person vs Full History */}
           {!selectedDate && !search && (
             <div className="flex items-center gap-1 rounded bg-canvas border border-border p-0.5 text-xs">
@@ -196,6 +317,28 @@ export default function DailyReportsPage() {
             </div>
           )}
 
+          {/* Card / Grid view toggle */}
+          <div className="flex items-center gap-1 rounded bg-canvas border border-border p-0.5 text-xs ml-auto sm:ml-0">
+            <button
+              type="button"
+              onClick={() => setViewMode("cards")}
+              className={`rounded px-2.5 py-1 font-medium transition-colors ${
+                viewMode === "cards" ? "bg-panel text-ink shadow-subtle font-semibold" : "text-ink-muted hover:text-ink"
+              }`}
+            >
+              Cards
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              className={`rounded px-2.5 py-1 font-medium transition-colors ${
+                viewMode === "grid" ? "bg-panel text-ink shadow-subtle font-semibold" : "text-ink-muted hover:text-ink"
+              }`}
+            >
+              Grid
+            </button>
+          </div>
+
           {(search || selectedDate) && (
             <button
               type="button"
@@ -210,7 +353,7 @@ export default function DailyReportsPage() {
           )}
         </div>
 
-        {/* Reports Content Stream */}
+        {/* Reports Content */}
         {filteredReports.length === 0 ? (
           <EmptyState
             title="No daily reports found"
@@ -221,15 +364,119 @@ export default function DailyReportsPage() {
             }
             action={<PrimaryButton onClick={openCreate}>+ Submit Daily Report</PrimaryButton>}
           />
+        ) : viewMode === "grid" ? (
+          /* Excel-style grid view */
+          <div className="overflow-x-auto rounded-md border border-border">
+            <table className="w-full min-w-[900px] border-collapse text-xs">
+              <thead>
+                <tr className="bg-canvas">
+                  {["Employee", "Date", "Submitted", "Worked On", "Completed", "Remaining", "Blockers", "Comments", ""].map(
+                    (h) => (
+                      <th key={h} className="border border-border px-2 py-2 text-left font-semibold text-ink-muted whitespace-nowrap">
+                        {h}
+                      </th>
+                    )
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredReports.map((report) => {
+                  const employee = employees.find((e) => e.id === report.employeeId);
+                  const commentsForReport = reportComments.filter((c) => c.reportId === report.id);
+                  const isExpanded = expandedId === report.id;
+                  return (
+                    <>
+                      <tr
+                        key={report.id}
+                        onClick={() => setExpandedId(isExpanded ? null : report.id)}
+                        className="cursor-pointer hover:bg-canvas/60"
+                      >
+                        <td className="border border-border px-2 py-1.5 font-medium text-ink whitespace-nowrap">
+                          {employee?.name ?? "Former Employee"}
+                        </td>
+                        <td className="border border-border px-2 py-1.5 whitespace-nowrap">{formatDate(report.date)}</td>
+                        <td className="border border-border px-2 py-1.5 whitespace-nowrap text-ink-faint">
+                          {formatDateTime(report.submittedAt)}
+                        </td>
+                        <td className="border border-border px-2 py-1.5 max-w-[180px] truncate" title={report.workedOn}>
+                          {truncate(report.workedOn, 40)}
+                        </td>
+                        <td className="border border-border px-2 py-1.5 max-w-[180px] truncate" title={report.completed}>
+                          {truncate(report.completed, 40)}
+                        </td>
+                        <td className="border border-border px-2 py-1.5 max-w-[180px] truncate" title={report.remaining}>
+                          {truncate(report.remaining, 40)}
+                        </td>
+                        <td className="border border-border px-2 py-1.5 max-w-[180px] truncate" title={report.blockers}>
+                          {truncate(report.blockers, 40)}
+                        </td>
+                        <td className="border border-border px-2 py-1.5 text-center whitespace-nowrap">
+                          {commentsForReport.length}
+                        </td>
+                        <td className="border border-border px-2 py-1.5 whitespace-nowrap">
+                          {canEdit(report) && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEdit(report);
+                              }}
+                              className="text-brand-600 hover:underline font-medium"
+                            >
+                              Edit
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr key={`${report.id}-expanded`}>
+                          <td colSpan={9} className="border border-border bg-canvas/40 px-4 py-3">
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-xs mb-3">
+                              <div>
+                                <p className="font-semibold text-ink-muted uppercase tracking-wide text-[10px] mb-1">
+                                  Worked On
+                                </p>
+                                <p className="whitespace-pre-wrap text-ink">{report.workedOn || "—"}</p>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-ink-muted uppercase tracking-wide text-[10px] mb-1">
+                                  Completed
+                                </p>
+                                <p className="whitespace-pre-wrap text-ink">{report.completed || "—"}</p>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-ink-muted uppercase tracking-wide text-[10px] mb-1">
+                                  Remaining
+                                </p>
+                                <p className="whitespace-pre-wrap text-ink">{report.remaining || "—"}</p>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-ink-muted uppercase tracking-wide text-[10px] mb-1">
+                                  Blockers
+                                </p>
+                                <p className="whitespace-pre-wrap text-ink">{report.blockers || "None reported."}</p>
+                              </div>
+                            </div>
+                            <ReportComments reportId={report.id} comments={commentsForReport} />
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
+          /* Card view */
           <div className="space-y-4">
             {filteredReports.map((report) => {
               const employee = employees.find((e) => e.id === report.employeeId);
               const isSelf = employee?.id === currentUser.id;
               const colorIdx = employee ? (employee.name.charCodeAt(0) + employee.id.charCodeAt(0)) % avatarColors.length : 0;
               const avatarClass = avatarColors[colorIdx];
-
               const hasContent = report.workedOn || report.completed || report.remaining || report.blockers;
+              const commentsForReport = reportComments.filter((c) => c.reportId === report.id);
 
               return (
                 <div
@@ -281,9 +528,20 @@ export default function DailyReportsPage() {
                     </div>
 
                     <div className="text-right flex-shrink-0 space-y-1">
-                      <span className="inline-flex items-center gap-1 rounded bg-canvas border border-border px-2.5 py-1 text-xs font-semibold text-ink">
-                        📅 {formatDate(report.date)}
-                      </span>
+                      <div className="flex items-center gap-2 justify-end">
+                        <span className="inline-flex items-center gap-1 rounded bg-canvas border border-border px-2.5 py-1 text-xs font-semibold text-ink">
+                          📅 {formatDate(report.date)}
+                        </span>
+                        {canEdit(report) && (
+                          <button
+                            type="button"
+                            onClick={() => openEdit(report)}
+                            className="text-xs font-medium text-brand-600 hover:underline"
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </div>
                       {report.submittedAt && (
                         <p className="text-[10px] text-ink-faint">
                           {formatDateTime(report.submittedAt)}
@@ -350,6 +608,8 @@ export default function DailyReportsPage() {
                       </div>
                     </div>
                   )}
+
+                  <ReportComments reportId={report.id} comments={commentsForReport} />
                 </div>
               );
             })}
@@ -360,53 +620,7 @@ export default function DailyReportsPage() {
       {modalOpen && (
         <Modal title="Submit Daily Report" onClose={() => setModalOpen(false)} wide>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Field label="Employee">
-              <p className="pt-1.5 text-sm font-medium text-ink">{currentUser.name}</p>
-            </Field>
-            <Field label="Date">
-              <input
-                type="date"
-                className="input"
-                value={form.date}
-                onChange={(e) => setForm({ ...form, date: e.target.value })}
-                required
-              />
-            </Field>
-
-            <Field label="What I worked on" hint="Describe tasks and activities tackled today.">
-              <textarea
-                className="input min-h-[70px] resize-none"
-                value={form.workedOn}
-                onChange={(e) => setForm({ ...form, workedOn: e.target.value })}
-                placeholder="e.g. Worked on the client authentication flow and UI components..."
-                required
-              />
-            </Field>
-            <Field label="What I completed" hint="List deliverables or finished pieces.">
-              <textarea
-                className="input min-h-[60px] resize-none"
-                value={form.completed}
-                onChange={(e) => setForm({ ...form, completed: e.target.value })}
-                placeholder="e.g. Completed unit tests for login API and resolved page export bug..."
-              />
-            </Field>
-            <Field label="What remains" hint="Note planned next steps for tomorrow.">
-              <textarea
-                className="input min-h-[60px] resize-none"
-                value={form.remaining}
-                onChange={(e) => setForm({ ...form, remaining: e.target.value })}
-                placeholder="e.g. Will integrate Stripe checkout and finalize mobile layout..."
-              />
-            </Field>
-            <Field label="Blockers" hint="Mention anything preventing progress.">
-              <textarea
-                className="input min-h-[60px] resize-none"
-                value={form.blockers}
-                onChange={(e) => setForm({ ...form, blockers: e.target.value })}
-                placeholder="e.g. Waiting for API credentials or design specs (leave blank if none)..."
-              />
-            </Field>
-
+            <ReportFields form={form} setForm={setForm} showEmployeeLabel={currentUser.name} />
             <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
               <SecondaryButton
                 type="button"
@@ -423,6 +637,36 @@ export default function DailyReportsPage() {
                 className="w-full sm:w-auto"
               >
                 Submit Report
+              </PrimaryButton>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {editingReport && (
+        <Modal title="Edit Daily Report" onClose={() => setEditingReport(null)} wide>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <ReportFields
+              form={editForm}
+              setForm={setEditForm}
+              showEmployeeLabel={employees.find((e) => e.id === editingReport.employeeId)?.name}
+            />
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+              <SecondaryButton
+                type="button"
+                onClick={() => setEditingReport(null)}
+                disabled={isEditSubmitting}
+                className="w-full sm:w-auto"
+              >
+                Cancel
+              </SecondaryButton>
+              <PrimaryButton
+                type="submit"
+                loading={isEditSubmitting}
+                loadingText="Saving..."
+                className="w-full sm:w-auto"
+              >
+                Save Changes
               </PrimaryButton>
             </div>
           </form>
