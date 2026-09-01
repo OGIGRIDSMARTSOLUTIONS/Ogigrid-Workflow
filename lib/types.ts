@@ -1,9 +1,4 @@
-export type TaskStatus =
-  | "To Do"
-  | "In Progress"
-  | "Review"
-  | "Completed"
-  | "Blocked";
+export type TaskStatus = "To Do" | "In Progress" | "Review" | "Completed" | "Blocked";
 
 export type TaskPriority = "Low" | "Medium" | "High" | "Urgent";
 
