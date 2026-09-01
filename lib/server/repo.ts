@@ -8,7 +8,11 @@ import {
   mapMeeting,
   mapDocument,
   mapDailyReport,
+<<<<<<< HEAD
   mapReportComment,
+=======
+  mapDailyReportComment,
+>>>>>>> 4b5b146cb59da56315b0b76f846056cfb5f4e25c
   mapNotification,
   mapActivity,
 } from "./mappers";
@@ -707,12 +711,18 @@ export async function createMeeting(
   }
   await logActivity(`Meeting "${row.title}" was scheduled.`);
   const platformText = input.platform ? ` via ${input.platform}` : "";
-  for (const employeeId of input.attendeeIds.filter((a) => a !== actorId)) {
+  const allActiveEmployees = await listEmployees();
+  const notifyList = allActiveEmployees.filter((e) => e.status === "Active" && e.id !== actorId);
+
+  for (const emp of notifyList) {
+    const isAttendee = input.attendeeIds.includes(emp.id);
     await notify(
-      employeeId,
+      emp.id,
       "meeting",
-      "Meeting scheduled",
-      `You were invited to "${row.title}" on ${input.date} at ${input.time}${platformText}.`,
+      isAttendee ? "Meeting invitation" : "New meeting scheduled",
+      isAttendee
+        ? `You were invited to "${row.title}" on ${input.date} at ${input.time}${platformText}.`
+        : `A new team meeting "${row.title}" was scheduled for ${input.date} at ${input.time}${platformText}.`,
       "meeting",
       row.id
     );
@@ -797,7 +807,11 @@ export async function deleteMeeting(id: string, actorId: string) {
 // ---------------------------------------------------------------------
 
 export async function listDocuments() {
-  const rows = await query<any>(`SELECT * FROM documents ORDER BY updated_at DESC`);
+  const rows = await query<any>(
+    `SELECT id, name, description, project_id, file_name, file_size, mime_type, created_at, updated_at
+     FROM documents
+     ORDER BY updated_at DESC`
+  );
   return rows.map(mapDocument);
 }
 
@@ -829,6 +843,20 @@ export async function createDocument(input: {
     ]
   );
   await logActivity(`Document "${row.name}" was added.`);
+
+  const project = await queryOne<any>(`SELECT * FROM projects WHERE id = $1`, [input.projectId]);
+  const activeEmployees = await listEmployees();
+  for (const emp of activeEmployees.filter((e) => e.status === "Active")) {
+    await notify(
+      emp.id,
+      "document",
+      "New document uploaded",
+      `A new document "${row.name}" was uploaded to project "${project?.name ?? "a project"}".`,
+      "document",
+      row.id
+    );
+  }
+
   return mapDocument(row);
 }
 
@@ -884,6 +912,87 @@ export async function deleteDocument(id: string) {
 export async function listDailyReports() {
   const rows = await query<any>(`SELECT * FROM daily_reports ORDER BY submitted_at DESC`);
   return rows.map(mapDailyReport);
+}
+
+export async function findDailyReportById(id: string) {
+  const row = await queryOne<any>(`SELECT * FROM daily_reports WHERE id = $1`, [id]);
+  return row ? mapDailyReport(row) : null;
+}
+
+export async function updateDailyReport(
+  id: string,
+  patch: Partial<{
+    date: string;
+    workedOn: string;
+    completed: string;
+    remaining: string;
+    blockers: string;
+  }>
+) {
+  const existing = await queryOne<any>(`SELECT * FROM daily_reports WHERE id = $1`, [id]);
+  if (!existing) return null;
+
+  const row = await queryOne<any>(
+    `UPDATE daily_reports SET
+       date = $1,
+       worked_on = $2,
+       completed = $3,
+       remaining = $4,
+       blockers = $5
+     WHERE id = $6 RETURNING *`,
+    [
+      patch.date ?? existing.date,
+      patch.workedOn ?? existing.worked_on,
+      patch.completed ?? existing.completed,
+      patch.remaining ?? existing.remaining,
+      patch.blockers ?? existing.blockers,
+      id,
+    ]
+  );
+
+  const employee = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [existing.employee_id]);
+  await logActivity(`${employee?.name ?? "An employee"} updated a daily report.`);
+  return mapDailyReport(row);
+}
+
+export async function listDailyReportComments(reportId: string) {
+  const rows = await query<any>(
+    `SELECT * FROM daily_report_comments WHERE report_id = $1 ORDER BY created_at ASC`,
+    [reportId]
+  );
+  return rows.map(mapDailyReportComment);
+}
+
+export async function createDailyReportComment(input: {
+  reportId: string;
+  authorId: string;
+  body: string;
+}) {
+  const report = await queryOne<any>(`SELECT * FROM daily_reports WHERE id = $1`, [input.reportId]);
+  if (!report) return null;
+
+  const row = await queryOne<any>(
+    `INSERT INTO daily_report_comments (report_id, author_id, body)
+     VALUES ($1, $2, $3) RETURNING *`,
+    [input.reportId, input.authorId, input.body.trim()]
+  );
+
+  const author = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [input.authorId]);
+  const reportOwnerId = report.employee_id;
+
+  if (reportOwnerId !== input.authorId) {
+    await notify(
+      reportOwnerId,
+      "daily-report",
+      "New comment on your report",
+      `${author?.name ?? "A teammate"} commented on your daily report.`,
+      "report",
+      input.reportId
+    );
+  }
+
+  await logActivity(`${author?.name ?? "Someone"} commented on a daily report.`);
+  return mapDailyReportComment(row);
 }
 
 export async function createDailyReport(input: {

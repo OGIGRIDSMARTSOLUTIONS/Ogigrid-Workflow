@@ -7,13 +7,17 @@ export async function POST(request: Request) {
   if (error) return error;
 
   const body = await request.json().catch(() => null);
-  if (!body || !body.title) {
+  if (!body || !body.title || typeof body.title !== "string" || !body.title.trim()) {
     return NextResponse.json({ error: "Meeting title is required." }, { status: 400 });
+  }
+
+  if (!body.date) {
+    return NextResponse.json({ error: "Meeting date is required." }, { status: 400 });
   }
 
   const meeting = await createMeeting(
     {
-      title: body.title,
+      title: body.title.trim(),
       date: body.date,
       time: body.time ?? "09:00",
       platform: body.platform ?? "Google Meet",
