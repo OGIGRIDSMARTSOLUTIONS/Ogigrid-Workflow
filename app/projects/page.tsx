@@ -10,7 +10,7 @@ import { EmptyState, Field, PrimaryButton, SecondaryButton } from "@/components/
 import { useApp } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
-import { formatDate, computeProjectProgress, todayIso } from "@/lib/data";
+import { formatDate, computeProjectTaskStats, todayIso } from "@/lib/data";
 import { TaskStatus } from "@/lib/types";
 
 const emptyForm = {
@@ -54,9 +54,9 @@ export default function ProjectsPage() {
   // Every authenticated employee can see all workspace projects.
   const allProjects = projects;
 
-  function projectProgress(projectId: string) {
+  function projectStats(projectId: string) {
     const projectTasks = tasks.filter((t) => t.projectId === projectId);
-    return computeProjectProgress(projectTasks);
+    return computeProjectTaskStats(projectTasks);
   }
 
   function toggleMember(id: string) {
@@ -126,7 +126,7 @@ export default function ProjectsPage() {
                 </thead>
                 <tbody>
                   {allProjects.map((project) => {
-                    const progress = projectProgress(project.id);
+                    const { progress, completed, total } = projectStats(project.id);
                     const projectTasks = tasks.filter((t) => t.projectId === project.id);
                     const projectDocs = documents.filter((d) => d.projectId === project.id);
                     const members = employees.filter((e) => project.memberIds.includes(e.id));
@@ -171,7 +171,10 @@ export default function ProjectsPage() {
                                 style={{ width: `${progress}%` }}
                               />
                             </div>
-                            <span className="text-xs font-medium text-ink-muted">{progress}%</span>
+                            <span className="text-xs font-medium text-ink-muted">
+                              {progress}%
+                              {total > 0 ? ` · ${completed}/${total} done` : ""}
+                            </span>
                           </div>
                         </td>
                         <td className="px-4 py-3">

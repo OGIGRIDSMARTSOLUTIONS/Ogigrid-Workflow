@@ -19,7 +19,7 @@ import { TaskDetailPanel } from "@/components/tasks/TaskDetailPanel";
 import { useApp } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
-import { formatDate, formatDateTime, computeProjectProgress } from "@/lib/data";
+import { formatDate, formatDateTime, computeProjectProgress, computeProjectTaskStats } from "@/lib/data";
 import { DocumentItem, TaskStatus } from "@/lib/types";
 
 function formatFileSize(bytes?: number): string {
@@ -110,6 +110,7 @@ export default function ProjectDetailPage() {
   const members = employees.filter((e) => project.memberIds.includes(e.id));
   const nonMembers = employees.filter((e) => !project.memberIds.includes(e.id));
   const progress = computeProjectProgress(projectTasks);
+  const { completed, total } = computeProjectTaskStats(projectTasks);
 
   async function handleDownloadDocument(doc: DocumentItem) {
     try {
@@ -213,6 +214,11 @@ export default function ProjectDetailPage() {
           <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-faint">Progress</p>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-xl font-bold text-ink">{progress}%</span>
+            {total > 0 && (
+              <span className="text-xs text-ink-muted">
+                {completed}/{total} tasks done
+              </span>
+            )}
           </div>
         </div>
         <div className="rounded-lg border border-border bg-panel p-3.5 shadow-subtle border-t-2 border-t-indigo-600">

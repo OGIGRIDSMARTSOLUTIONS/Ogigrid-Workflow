@@ -1,14 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ScheduleGrid } from "./ScheduleGrid";
 import { MeetingDetailPanel } from "./MeetingDetailPanel";
 import { TaskDetailPanel } from "@/components/tasks/TaskDetailPanel";
-import { SecondaryButton, EmptyState } from "@/components/ui/FormControls";
+import { NewTaskModal } from "@/components/tasks/NewTaskModal";
+import { PrimaryButton, SecondaryButton, EmptyState } from "@/components/ui/FormControls";
 import { useApp } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { addDays, formatWeekRange, startOfWeek, todayIso, weekDates } from "@/lib/data";
 import { Meeting, Task } from "@/lib/types";
+
+type ScheduleSlot = { employeeId: string; date: string };
 
 export function ScheduleView() {
   const { employees, tasks, projects, meetings } = useApp();
@@ -16,6 +20,7 @@ export function ScheduleView() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(todayIso()));
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
+  const [scheduleSlot, setScheduleSlot] = useState<ScheduleSlot | null>(null);
 
   if (!currentUser) return null;
   const isAdmin = currentUser.role === "Admin";
@@ -56,6 +61,12 @@ export function ScheduleView() {
     setSelectedTaskId(null);
   }
 
+  function handleScheduleCell(employeeId: string, date: string) {
+    setScheduleSlot({ employeeId, date });
+    setSelectedTaskId(null);
+    setSelectedMeetingId(null);
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -68,10 +79,33 @@ export function ScheduleView() {
             Next →
           </SecondaryButton>
         </div>
-        <SecondaryButton onClick={() => setWeekStart(startOfWeek(todayIso()))} className="self-end sm:self-auto">
-          This week
-        </SecondaryButton>
+        <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
+          {isAdmin && (
+            <>
+              <Link href="/meetings">
+                <SecondaryButton type="button">+ Schedule Meeting</SecondaryButton>
+              </Link>
+              <PrimaryButton
+                type="button"
+                onClick={() =>
+                  handleScheduleCell(currentUser.id, todayIso())
+                }
+              >
+                + Schedule Task
+              </PrimaryButton>
+            </>
+          )}
+          <SecondaryButton onClick={() => setWeekStart(startOfWeek(todayIso()))}>
+            This week
+          </SecondaryButton>
+        </div>
       </div>
+
+      {isAdmin && (
+        <p className="text-xs text-ink-faint">
+          Click an empty cell to schedule a task for that teammate and day. Select a task or meeting to update progress or reschedule.
+        </p>
+      )}
 
       {totalScheduledItems === 0 && (
         <p className="text-sm text-ink-faint">
@@ -90,8 +124,10 @@ export function ScheduleView() {
           weekDates={dates}
           selectedTaskId={selectedTaskId}
           selectedMeetingId={selectedMeetingId}
+          isAdmin={isAdmin}
           onSelectTask={handleSelectTask}
           onSelectMeeting={handleSelectMeeting}
+          onScheduleCell={isAdmin ? handleScheduleCell : undefined}
         />
         {selectedMeeting ? (
           <MeetingDetailPanel
@@ -105,6 +141,18 @@ export function ScheduleView() {
           />
         )}
       </div>
+
+      {scheduleSlot && (
+        <NewTaskModal
+          defaultAssigneeId={scheduleSlot.employeeId}
+          defaultStartDate={scheduleSlot.date}
+          onClose={() => setScheduleSlot(null)}
+          onCreated={(task) => {
+            setSelectedTaskId(task.id);
+            setScheduleSlot(null);
+          }}
+        />
+      )}
     </div>
   );
 }

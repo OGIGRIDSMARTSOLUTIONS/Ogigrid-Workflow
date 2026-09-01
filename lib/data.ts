@@ -124,11 +124,44 @@ export function isAfter6pm(): boolean {
   return now.getHours() >= 18;
 }
 
-// Project progress is derived strictly from how many of its tasks are
-// Completed — not from each task's individual progress slider — so it
-// matches the simple "X of Y tasks completed" mental model.
-export function computeProjectProgress(projectTasks: { status: TaskStatus }[]) {
+// Keep task status and progress aligned when either changes.
+export function normalizeTaskProgressStatus(
+  status: TaskStatus,
+  progress: number
+): { status: TaskStatus; progress: number } {
+  let nextStatus = status;
+  let nextProgress = Math.max(0, Math.min(100, Math.round(progress)));
+
+  if (nextStatus === "Completed") {
+    nextProgress = 100;
+  } else if (nextProgress >= 100) {
+    nextStatus = "Completed";
+    nextProgress = 100;
+  } else if (nextProgress > 0 && nextStatus === "To Do") {
+    nextStatus = "In Progress";
+  }
+
+  return { status: nextStatus, progress: nextProgress };
+}
+
+function taskProgressValue(task: { status: TaskStatus; progress?: number }) {
+  if (task.status === "Completed") return 100;
+  return Math.max(0, Math.min(100, task.progress ?? 0));
+}
+
+// Project progress is the average of each task's progress slider.
+export function computeProjectProgress(projectTasks: { status: TaskStatus; progress?: number }[]) {
   if (projectTasks.length === 0) return 0;
+  const total = projectTasks.reduce((sum, task) => sum + taskProgressValue(task), 0);
+  return Math.round(total / projectTasks.length);
+}
+
+export function computeProjectTaskStats(projectTasks: { status: TaskStatus; progress?: number }[]) {
+  const total = projectTasks.length;
   const completed = projectTasks.filter((t) => t.status === "Completed").length;
-  return Math.round((completed / projectTasks.length) * 100);
+  return {
+    progress: computeProjectProgress(projectTasks),
+    completed,
+    total,
+  };
 }

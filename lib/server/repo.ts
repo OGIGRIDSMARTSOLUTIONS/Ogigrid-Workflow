@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { pool, query, queryOne } from "@/lib/db";
-import { computeProjectProgress } from "@/lib/data";
+import { computeProjectProgress, normalizeTaskProgressStatus } from "@/lib/data";
 import {
   mapEmployee,
   mapProject,
@@ -444,9 +444,10 @@ export async function removeProjectMember(projectId: string, employeeId: string)
 async function syncProjectStatus(projectId: string) {
   const project = await queryOne<any>(`SELECT * FROM projects WHERE id = $1`, [projectId]);
   if (!project) return;
-  const tasks = await query<{ status: string }>(`SELECT status FROM tasks WHERE project_id = $1`, [
-    projectId,
-  ]);
+  const tasks = await query<{ status: string; progress: number }>(
+    `SELECT status, progress FROM tasks WHERE project_id = $1`,
+    [projectId]
+  );
   if (tasks.length === 0) return;
 
   const progress = computeProjectProgress(tasks as any);
@@ -535,7 +536,9 @@ export async function updateTask(
     assigneeId: string | null;
     status: string;
     priority: string;
+    startDate: string;
     durationDays: number;
+    deadline: string;
     progress: number;
     dependsOnTaskId: string | null;
   }>,
@@ -544,23 +547,26 @@ export async function updateTask(
   const existing = await queryOne<any>(`SELECT * FROM tasks WHERE id = $1`, [id]);
   if (!existing) return null;
 
-  const nextStatus = patch.status ?? existing.status;
-  const nextProgress =
-    patch.progress !== undefined ? patch.progress : nextStatus === "Completed" ? 100 : existing.progress;
+  const normalized = normalizeTaskProgressStatus(
+    (patch.status ?? existing.status) as any,
+    patch.progress !== undefined ? patch.progress : existing.progress
+  );
 
   const row = await queryOne<any>(
     `UPDATE tasks SET
        name=$1, description=$2, assignee_id=$3, status=$4, priority=$5,
-       duration_days=$6, progress=$7, depends_on_task_id=$8
-     WHERE id=$9 RETURNING *`,
+       start_date=$6, duration_days=$7, deadline=$8, progress=$9, depends_on_task_id=$10
+     WHERE id=$11 RETURNING *`,
     [
       patch.name ?? existing.name,
       patch.description ?? existing.description,
       patch.assigneeId !== undefined ? patch.assigneeId : existing.assignee_id,
-      nextStatus,
+      normalized.status,
       patch.priority ?? existing.priority,
+      patch.startDate ?? existing.start_date,
       patch.durationDays ?? existing.duration_days,
-      nextProgress,
+      patch.deadline ?? existing.deadline,
+      normalized.progress,
       patch.dependsOnTaskId !== undefined ? patch.dependsOnTaskId : existing.depends_on_task_id,
       id,
     ]

@@ -11,11 +11,19 @@ import { Task, TaskPriority, TaskStatus } from "@/lib/types";
 
 interface NewTaskModalProps {
   projectId?: string;
+  defaultAssigneeId?: string;
+  defaultStartDate?: string;
   onClose: () => void;
   onCreated?: (task: Task) => void;
 }
 
-export function NewTaskModal({ projectId: fixedProjectId, onClose, onCreated }: NewTaskModalProps) {
+export function NewTaskModal({
+  projectId: fixedProjectId,
+  defaultAssigneeId,
+  defaultStartDate,
+  onClose,
+  onCreated,
+}: NewTaskModalProps) {
   const { employees, tasks, projects, addTask } = useApp();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
@@ -27,12 +35,12 @@ export function NewTaskModal({ projectId: fixedProjectId, onClose, onCreated }: 
   const [form, setForm] = useState({
     name: "",
     description: "",
-    assigneeId: "",
+    assigneeId: defaultAssigneeId ?? "",
     status: "To Do" as TaskStatus,
     priority: "Medium" as TaskPriority,
-    startDate: todayIso(),
+    startDate: defaultStartDate ?? todayIso(),
     durationDays: 1,
-    deadline: "",
+    deadline: defaultStartDate ?? "",
     dependsOnTaskId: "",
   });
 

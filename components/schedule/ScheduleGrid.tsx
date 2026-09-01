@@ -12,8 +12,10 @@ interface ScheduleGridProps {
   weekDates: string[];
   selectedTaskId: string | null;
   selectedMeetingId?: string | null;
+  isAdmin?: boolean;
   onSelectTask: (task: Task) => void;
   onSelectMeeting?: (meeting: Meeting) => void;
+  onScheduleCell?: (employeeId: string, date: string) => void;
 }
 
 export function ScheduleGrid({
@@ -24,8 +26,10 @@ export function ScheduleGrid({
   weekDates,
   selectedTaskId,
   selectedMeetingId,
+  isAdmin = false,
   onSelectTask,
   onSelectMeeting,
+  onScheduleCell,
 }: ScheduleGridProps) {
   return (
     <div className="overflow-x-auto rounded-md border border-border bg-panel shadow-subtle">
@@ -138,10 +142,10 @@ export function ScheduleGrid({
                             <p className="truncate text-[11px] text-ink-faint mt-0.5">
                               {projects.find((p) => p.id === task.projectId)?.name ?? "—"}
                             </p>
-                            <div className="mt-1.5 flex items-center justify-between">
+                            <div className="mt-1.5 flex items-center justify-between gap-1">
                               <StatusBadge status={task.status} />
                               <span className="text-[10px] text-ink-faint font-medium">
-                                {task.durationDays}d
+                                {task.progress}% · {task.durationDays}d
                               </span>
                             </div>
                           </button>
@@ -149,7 +153,17 @@ export function ScheduleGrid({
                       })}
 
                       {!hasItems && (
-                        <div className="h-full min-h-[56px] rounded-sm border border-dashed border-border" />
+                        isAdmin && onScheduleCell ? (
+                          <button
+                            type="button"
+                            onClick={() => onScheduleCell(employee.id, date)}
+                            className="flex h-full min-h-[56px] w-full items-center justify-center rounded-sm border border-dashed border-border text-[11px] font-medium text-ink-faint transition-colors hover:border-brand-300 hover:bg-brand-50/40 hover:text-brand-600"
+                          >
+                            + Schedule
+                          </button>
+                        ) : (
+                          <div className="h-full min-h-[56px] rounded-sm border border-dashed border-border" />
+                        )
                       )}
                     </div>
                   </td>
