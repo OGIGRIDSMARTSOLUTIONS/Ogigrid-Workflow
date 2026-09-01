@@ -1,8 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Panel } from "@/components/ui/Panel";
+import { PrimaryButton } from "@/components/ui/FormControls";
 import { useApp } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
+import { useToast } from "@/components/ui/Toast";
 import { formatDate } from "@/lib/data";
 import { Meeting } from "@/lib/types";
 
@@ -12,12 +16,37 @@ interface MeetingDetailPanelProps {
 }
 
 export function MeetingDetailPanel({ meeting, onClose }: MeetingDetailPanelProps) {
-  const { employees, projects } = useApp();
+  const { employees, projects, updateMeeting } = useApp();
+  const { currentUser } = useAuth();
+  const { showToast } = useToast();
+  const [draft, setDraft] = useState<Meeting | null>(meeting);
+  const [saving, setSaving] = useState(false);
 
-  if (!meeting) return null;
+  useEffect(() => {
+    setDraft(meeting);
+  }, [meeting]);
 
+  if (!meeting || !draft || !currentUser) return null;
+
+  const isAdmin = currentUser.role === "Admin";
   const project = projects.find((p) => p.id === meeting.projectId);
   const attendees = employees.filter((e) => meeting.attendeeIds.includes(e.id));
+
+  async function handleSaveSchedule() {
+    if (!isAdmin || saving) return;
+    setSaving(true);
+    try {
+      await updateMeeting(draft!.id, {
+        date: draft!.date,
+        time: draft!.time,
+      });
+      showToast("Meeting rescheduled.");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Unable to reschedule meeting.", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <Panel
@@ -37,16 +66,44 @@ export function MeetingDetailPanel({ meeting, onClose }: MeetingDetailPanelProps
           <h3 className="mt-2 text-base font-semibold text-ink">{meeting.title}</h3>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 border-t border-b border-border py-3 text-xs">
+        <div className="grid grid-cols-1 gap-3 border-t border-b border-border py-3 text-xs">
           <div>
-            <span className="block text-ink-faint uppercase font-medium">Date & Time</span>
-            <span className="font-medium text-ink">{formatDate(meeting.date)} · {meeting.time}</span>
+            <span className="mb-1 block text-ink-faint uppercase font-medium">Date</span>
+            {isAdmin ? (
+              <input
+                type="date"
+                className="input text-sm"
+                value={draft.date}
+                onChange={(e) => setDraft({ ...draft, date: e.target.value })}
+              />
+            ) : (
+              <span className="font-medium text-ink">{formatDate(meeting.date)}</span>
+            )}
+          </div>
+          <div>
+            <span className="mb-1 block text-ink-faint uppercase font-medium">Time</span>
+            {isAdmin ? (
+              <input
+                type="time"
+                className="input text-sm"
+                value={draft.time}
+                onChange={(e) => setDraft({ ...draft, time: e.target.value })}
+              />
+            ) : (
+              <span className="font-medium text-ink">{meeting.time}</span>
+            )}
           </div>
           <div>
             <span className="block text-ink-faint uppercase font-medium">Platform</span>
             <span className="font-medium text-purple-700">📹 {meeting.platform || "Google Meet"}</span>
           </div>
         </div>
+
+        {isAdmin && (draft.date !== meeting.date || draft.time !== meeting.time) && (
+          <PrimaryButton type="button" onClick={handleSaveSchedule} loading={saving}>
+            Save schedule
+          </PrimaryButton>
+        )}
 
         {meeting.meetingLink && (
           <div>

@@ -28,7 +28,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         assigneeId: body.assigneeId !== undefined ? body.assigneeId : undefined,
         status: body.status,
         priority: body.priority,
+        startDate: body.startDate,
         durationDays: body.durationDays !== undefined ? Number(body.durationDays) : undefined,
+        deadline: body.deadline,
         progress: body.progress !== undefined ? Number(body.progress) : undefined,
         dependsOnTaskId: body.dependsOnTaskId !== undefined ? body.dependsOnTaskId : undefined,
       }

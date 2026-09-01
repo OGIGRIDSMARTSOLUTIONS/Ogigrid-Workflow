@@ -1,42 +1,80 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { useAuth } from "@/lib/auth";
+import {
+  clearBrowserAppData,
+  markIdleLogout,
+  readLastActivity,
+  redirectToLogin,
+  touchLastActivity,
+} from "@/lib/clientSession";
 
-// 30 minutes of no mouse/keyboard/touch activity logs the user out, even
-// though the server-side session itself is still valid. This is separate
-// from — and stricter than — the 7-day server session TTL in
-// lib/server/session.ts, which only catches someone who stops opening the
-// app entirely. Adjust this constant if 30 minutes is too strict/loose for
-// how the team actually works.
-const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+// Boss requirement: end session after 10 minutes of inactivity.
+export const IDLE_TIMEOUT_MS = 10 * 60 * 1000;
+const CHECK_INTERVAL_MS = 30 * 1000;
 
-const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"] as const;
+// Real user actions only — not mousemove/scroll (those never let the timer expire).
+const ACTIVITY_EVENTS = ["mousedown", "keydown", "touchstart", "click"] as const;
+
+async function endSessionOnServer() {
+  await fetch("/api/auth/logout", {
+    method: "POST",
+    cache: "no-store",
+    credentials: "same-origin",
+  }).catch(() => undefined);
+}
 
 export function useIdleLogout() {
-  const { currentUser, logout } = useAuth();
-  const router = useRouter();
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { currentUser } = useAuth();
 
   useEffect(() => {
-    if (!currentUser) return;
-
-    function resetTimer() {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(async () => {
-        await logout();
-        router.replace("/login");
-      }, IDLE_TIMEOUT_MS);
+    if (!currentUser) {
+      return;
     }
 
-    resetTimer();
-    ACTIVITY_EVENTS.forEach((evt) => window.addEventListener(evt, resetTimer));
+    if (!sessionStorage.getItem("ogigrid_last_activity")) {
+      touchLastActivity();
+    }
+
+    let loggingOut = false;
+
+    async function forceIdleLogout() {
+      if (loggingOut) return;
+      loggingOut = true;
+
+      markIdleLogout();
+      await endSessionOnServer();
+      clearBrowserAppData(true);
+      redirectToLogin();
+    }
+
+    function checkIdle() {
+      const idleFor = Date.now() - readLastActivity();
+      if (idleFor >= IDLE_TIMEOUT_MS) {
+        void forceIdleLogout();
+      }
+    }
+
+    function onActivity() {
+      touchLastActivity();
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        checkIdle();
+      }
+    }
+
+    checkIdle();
+    const intervalId = window.setInterval(checkIdle, CHECK_INTERVAL_MS);
+    ACTIVITY_EVENTS.forEach((evt) => window.addEventListener(evt, onActivity, { passive: true }));
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      ACTIVITY_EVENTS.forEach((evt) => window.removeEventListener(evt, resetTimer));
+      window.clearInterval(intervalId);
+      ACTIVITY_EVENTS.forEach((evt) => window.removeEventListener(evt, onActivity));
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 }

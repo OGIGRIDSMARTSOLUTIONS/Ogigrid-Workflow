@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { pool, query, queryOne } from "@/lib/db";
-import { computeProjectProgress } from "@/lib/data";
+import { computeProjectProgress, normalizeTaskProgressStatus } from "@/lib/data";
 import {
   mapEmployee,
   mapProject,
@@ -534,6 +534,7 @@ export async function removeProjectMember(
 // no longer fully completed -> back to In Progress. Projects with no tasks
 // are left alone so a manually chosen status isn't overridden.
 async function syncProjectStatus(projectId: string) {
+<<<<<<< HEAD
   const project = await queryOne<any>(`SELECT * FROM projects WHERE id = $1`, [
     projectId,
   ]);
@@ -541,6 +542,13 @@ async function syncProjectStatus(projectId: string) {
   const tasks = await query<{ status: string }>(
     `SELECT status FROM tasks WHERE project_id = $1`,
     [projectId],
+=======
+  const project = await queryOne<any>(`SELECT * FROM projects WHERE id = $1`, [projectId]);
+  if (!project) return;
+  const tasks = await query<{ status: string; progress: number }>(
+    `SELECT status, progress FROM tasks WHERE project_id = $1`,
+    [projectId]
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
   );
   if (tasks.length === 0) return;
 
@@ -638,7 +646,9 @@ export async function updateTask(
     assigneeId: string | null;
     status: string;
     priority: string;
+    startDate: string;
     durationDays: number;
+    deadline: string;
     progress: number;
     dependsOnTaskId: string | null;
   }>,
@@ -649,6 +659,7 @@ export async function updateTask(
   ]);
   if (!existing) return null;
 
+<<<<<<< HEAD
   const nextStatus = patch.status ?? existing.status;
   const nextProgress =
     patch.progress !== undefined
@@ -656,23 +667,36 @@ export async function updateTask(
       : nextStatus === "Completed"
         ? 100
         : existing.progress;
+=======
+  const normalized = normalizeTaskProgressStatus(
+    (patch.status ?? existing.status) as any,
+    patch.progress !== undefined ? patch.progress : existing.progress
+  );
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
 
   const row = await queryOne<any>(
     `UPDATE tasks SET
        name=$1, description=$2, assignee_id=$3, status=$4, priority=$5,
-       duration_days=$6, progress=$7, depends_on_task_id=$8
-     WHERE id=$9 RETURNING *`,
+       start_date=$6, duration_days=$7, deadline=$8, progress=$9, depends_on_task_id=$10
+     WHERE id=$11 RETURNING *`,
     [
       patch.name ?? existing.name,
       patch.description ?? existing.description,
       patch.assigneeId !== undefined ? patch.assigneeId : existing.assignee_id,
-      nextStatus,
+      normalized.status,
       patch.priority ?? existing.priority,
+      patch.startDate ?? existing.start_date,
       patch.durationDays ?? existing.duration_days,
+<<<<<<< HEAD
       nextProgress,
       patch.dependsOnTaskId !== undefined
         ? patch.dependsOnTaskId
         : existing.depends_on_task_id,
+=======
+      patch.deadline ?? existing.deadline,
+      normalized.progress,
+      patch.dependsOnTaskId !== undefined ? patch.dependsOnTaskId : existing.depends_on_task_id,
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
       id,
     ],
   );
@@ -1030,10 +1054,53 @@ export async function deleteDocument(id: string) {
 // ---------------------------------------------------------------------
 
 export async function listDailyReports() {
+<<<<<<< HEAD
   const rows = await query<any>(
     `SELECT * FROM daily_reports ORDER BY submitted_at DESC`,
   );
   return rows.map(mapDailyReport);
+=======
+  const rows = await query<any>(`SELECT * FROM daily_reports ORDER BY submitted_at DESC`);
+  return rows.map(mapDailyReport);
+}
+
+export async function findDailyReportById(id: string) {
+  const row = await queryOne<any>(`SELECT * FROM daily_reports WHERE id = $1`, [id]);
+  return row ? mapDailyReport(row) : null;
+}
+
+// Only the report's own author or an Admin may edit it — enforced here,
+// not just by hiding the Edit button in the UI.
+export async function updateDailyReport(
+  id: string,
+  patch: Partial<{ date: string; workedOn: string; completed: string; remaining: string; blockers: string }>,
+  actorId: string,
+  isAdmin: boolean
+) {
+  const existing = await findDailyReportById(id);
+  if (!existing) return { ok: false as const, error: "Report not found." };
+  if (existing.employeeId !== actorId && !isAdmin) {
+    return { ok: false as const, error: "You can only edit your own report." };
+  }
+
+  const row = await queryOne<any>(
+    `UPDATE daily_reports SET
+       date = $1, worked_on = $2, completed = $3, remaining = $4, blockers = $5
+     WHERE id = $6 RETURNING *`,
+    [
+      patch.date ?? existing.date,
+      patch.workedOn ?? existing.workedOn,
+      patch.completed ?? existing.completed,
+      patch.remaining ?? existing.remaining,
+      patch.blockers ?? existing.blockers,
+      id,
+    ]
+  );
+
+  const employee = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [existing.employeeId]);
+  await logActivity(`${employee?.name ?? "An employee"} updated a daily report.`);
+  return { ok: true as const, report: mapDailyReport(row) };
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
 }
 
 export async function createDailyReport(input: {
@@ -1082,6 +1149,7 @@ export async function createDailyReport(input: {
   return mapDailyReport(row);
 }
 
+<<<<<<< HEAD
 export async function findDailyReportById(id: string) {
   return queryOne<any>(`SELECT * FROM daily_reports WHERE id = $1`, [id]);
 }
@@ -1122,9 +1190,19 @@ export async function updateDailyReport(
   return { ok: true as const, report: mapDailyReport(row) };
 }
 
+=======
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
 // ---------------------------------------------------------------------
 // Daily report comments — anyone can comment on anyone's report.
 // ---------------------------------------------------------------------
+
+export async function listDailyReportComments(reportId: string) {
+  const rows = await query<any>(
+    `SELECT * FROM daily_report_comments WHERE report_id = $1 ORDER BY created_at ASC`,
+    [reportId]
+  );
+  return rows.map(mapReportComment);
+}
 
 export async function listReportComments() {
   const rows = await query<any>(
@@ -1144,13 +1222,18 @@ export async function createReportComment(
   );
 
   const report = await findDailyReportById(reportId);
+<<<<<<< HEAD
   if (report && report.employee_id !== employeeId) {
     const commenter = await queryOne<any>(
       `SELECT * FROM employees WHERE id = $1`,
       [employeeId],
     );
+=======
+  if (report && report.employeeId !== employeeId) {
+    const commenter = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [employeeId]);
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
     await notify(
-      report.employee_id,
+      report.employeeId,
       "daily-report",
       "New comment on your daily report",
       `${commenter?.name ?? "Someone"} commented on your report for ${report.date}.`,

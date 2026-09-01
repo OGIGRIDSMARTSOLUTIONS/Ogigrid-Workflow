@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
+import { Panel } from "@/components/ui/Panel";
 import { Modal } from "@/components/ui/Modal";
 import { EmptyState, Field, PrimaryButton, SecondaryButton } from "@/components/ui/FormControls";
 import { DepartmentBadge } from "@/components/ui/StatusBadge";
-import { ReportComments } from "@/components/daily-reports/ReportComments";
 import { useApp } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
@@ -21,6 +21,7 @@ const emptyForm = {
   blockers: "",
 };
 
+<<<<<<< HEAD
 function ReportFields({
   form,
   setForm,
@@ -80,43 +81,98 @@ function ReportFields({
         />
       </Field>
     </>
+=======
+type ViewMode = "grid" | "cards";
+type SortKey = "date" | "employee" | "submittedAt";
+type SortDir = "asc" | "desc";
+
+function escapeCsv(value: string): string {
+  const safe = value.replace(/"/g, '""');
+  return `"${safe}"`;
+}
+
+function downloadCsv(rows: DailyReport[], employees: { id: string; name: string }[]) {
+  const header = ["Date", "Employee", "Worked On", "Completed", "Remaining", "Blockers", "Submitted At"];
+  const lines = rows.map((report) => {
+    const employee = employees.find((e) => e.id === report.employeeId);
+    return [
+      report.date,
+      employee?.name ?? "Unknown",
+      report.workedOn,
+      report.completed,
+      report.remaining,
+      report.blockers,
+      report.submittedAt,
+    ]
+      .map(escapeCsv)
+      .join(",");
+  });
+
+  const csv = [header.join(","), ...lines].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `daily-reports-${todayIso()}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
+
+function SortHeader({
+  label,
+  active,
+  dir,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  dir: SortDir;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 font-medium hover:text-brand-600 transition-colors ${
+        active ? "text-brand-700" : "text-ink-faint"
+      }`}
+    >
+      {label}
+      <span className="text-[10px]">{active ? (dir === "asc" ? "Γû▓" : "Γû╝") : "Γåò"}</span>
+    </button>
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
   );
 }
 
 export default function DailyReportsPage() {
-  const { dailyReports, reportComments, employees, addDailyReport, updateDailyReport } = useApp();
+  const { dailyReports, employees, addDailyReport } = useApp();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tab, setTab] = useState<"all" | "mine">("all");
+<<<<<<< HEAD
   const [viewScope, setViewScope] = useState<"latest" | "all_history">("latest");
   const [viewMode, setViewMode] = useState<"cards" | "grid">("cards");
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+=======
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewScope, setViewScope] = useState<"latest" | "all_history">("all_history");
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
   const [search, setSearch] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
 
-  // Editing — owner or Admin only, enforced again server-side in the PATCH route.
-  const [editingReport, setEditingReport] = useState<DailyReport | null>(null);
-  const [editForm, setEditForm] = useState(emptyForm);
-  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
-
-  // Grid view row expansion
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
   if (!currentUser) return null;
-  const isAdmin = currentUser.role === "Admin";
-
-  function canEdit(report: DailyReport) {
-    return isAdmin || report.employeeId === currentUser!.id;
-  }
 
   function openCreate() {
     setForm(emptyForm);
     setModalOpen(true);
   }
 
+<<<<<<< HEAD
   function openEdit(report: DailyReport) {
     setEditingReport(report);
     setEditForm({
@@ -126,6 +182,15 @@ export default function DailyReportsPage() {
       remaining: report.remaining,
       blockers: report.blockers,
     });
+=======
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "employee" ? "asc" : "desc");
+    }
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -144,6 +209,7 @@ export default function DailyReportsPage() {
     }
   }
 
+<<<<<<< HEAD
   async function handleEditSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!editingReport || isEditSubmitting) return;
@@ -160,6 +226,8 @@ export default function DailyReportsPage() {
   }
 
   // Filter and sort reports
+=======
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
   const filteredReports = useMemo(() => {
     let list = dailyReports;
 
@@ -190,12 +258,15 @@ export default function DailyReportsPage() {
       });
     }
 
+<<<<<<< HEAD
     // Sort by submission time, direction controlled by sortOrder
     const sorted = [...list].sort((a, b) =>
       sortOrder === "desc" ? b.submittedAt.localeCompare(a.submittedAt) : a.submittedAt.localeCompare(b.submittedAt)
     );
 
     // If 'latest' mode is chosen (default), show only each person's most recent report to avoid multiple duplicates/clutter
+=======
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
     if (viewScope === "latest" && !selectedDate && !search.trim()) {
       const seen = new Set<string>();
       const deduped: typeof sorted = [];
@@ -209,7 +280,18 @@ export default function DailyReportsPage() {
     }
 
     return sorted;
+<<<<<<< HEAD
   }, [dailyReports, tab, currentUser.id, selectedDate, search, employees, viewScope, sortOrder]);
+=======
+  }, [dailyReports, tab, currentUser.id, selectedDate, search, employees, viewScope, sortKey, sortDir]);
+
+  const selectedReport = filteredReports.find((r) => r.id === selectedReportId)
+    ?? dailyReports.find((r) => r.id === selectedReportId)
+    ?? null;
+  const selectedEmployee = selectedReport
+    ? employees.find((e) => e.id === selectedReport.employeeId)
+    : undefined;
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
 
   const avatarColors = [
     "bg-blue-100 text-blue-700 border-blue-200",
@@ -219,11 +301,6 @@ export default function DailyReportsPage() {
     "bg-amber-100 text-amber-800 border-amber-200",
     "bg-rose-100 text-rose-700 border-rose-200",
   ];
-
-  function truncate(text: string, max: number) {
-    if (!text) return "—";
-    return text.length > max ? `${text.slice(0, max)}…` : text;
-  }
 
   return (
     <AppShell
@@ -258,7 +335,16 @@ export default function DailyReportsPage() {
             </button>
           </div>
 
+<<<<<<< HEAD
           <PrimaryButton onClick={openCreate}>+ Submit Daily Report</PrimaryButton>
+=======
+          <div className="flex flex-wrap items-center gap-2">
+            <SecondaryButton type="button" onClick={() => downloadCsv(filteredReports, employees)}>
+              Γ¼ç Export CSV
+            </SecondaryButton>
+            <PrimaryButton onClick={openCreate}>+ Submit Daily Report</PrimaryButton>
+          </div>
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
         </div>
 
         {/* Search and Date Filter Toolbar */}
@@ -279,6 +365,7 @@ export default function DailyReportsPage() {
             title="Filter by report date"
           />
 
+<<<<<<< HEAD
           {/* Sort order toggle */}
           <button
             type="button"
@@ -290,6 +377,33 @@ export default function DailyReportsPage() {
           </button>
 
           {/* Scope Selector: Latest per person vs Full History */}
+=======
+          <div className="flex items-center gap-1 rounded bg-canvas border border-border p-0.5 text-xs">
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              className={`rounded px-2.5 py-1 font-medium transition-colors ${
+                viewMode === "grid"
+                  ? "bg-panel text-ink shadow-subtle font-semibold"
+                  : "text-ink-muted hover:text-ink"
+              }`}
+            >
+              ≡ƒôè Grid View
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("cards")}
+              className={`rounded px-2.5 py-1 font-medium transition-colors ${
+                viewMode === "cards"
+                  ? "bg-panel text-ink shadow-subtle font-semibold"
+                  : "text-ink-muted hover:text-ink"
+              }`}
+            >
+              ≡ƒùé∩╕Å Card View
+            </button>
+          </div>
+
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
           {!selectedDate && !search && (
             <div className="flex items-center gap-1 rounded bg-canvas border border-border p-0.5 text-xs">
               <button
@@ -317,28 +431,6 @@ export default function DailyReportsPage() {
             </div>
           )}
 
-          {/* Card / Grid view toggle */}
-          <div className="flex items-center gap-1 rounded bg-canvas border border-border p-0.5 text-xs ml-auto sm:ml-0">
-            <button
-              type="button"
-              onClick={() => setViewMode("cards")}
-              className={`rounded px-2.5 py-1 font-medium transition-colors ${
-                viewMode === "cards" ? "bg-panel text-ink shadow-subtle font-semibold" : "text-ink-muted hover:text-ink"
-              }`}
-            >
-              Cards
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("grid")}
-              className={`rounded px-2.5 py-1 font-medium transition-colors ${
-                viewMode === "grid" ? "bg-panel text-ink shadow-subtle font-semibold" : "text-ink-muted hover:text-ink"
-              }`}
-            >
-              Grid
-            </button>
-          </div>
-
           {(search || selectedDate) && (
             <button
               type="button"
@@ -353,7 +445,11 @@ export default function DailyReportsPage() {
           )}
         </div>
 
+<<<<<<< HEAD
         {/* Reports Content */}
+=======
+        {/* Content */}
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
         {filteredReports.length === 0 ? (
           <EmptyState
             title="No daily reports found"
@@ -365,6 +461,7 @@ export default function DailyReportsPage() {
             action={<PrimaryButton onClick={openCreate}>+ Submit Daily Report</PrimaryButton>}
           />
         ) : viewMode === "grid" ? (
+<<<<<<< HEAD
           /* Excel-style grid view */
           <div className="overflow-x-auto rounded-md border border-border">
             <table className="w-full min-w-[900px] border-collapse text-xs">
@@ -467,8 +564,108 @@ export default function DailyReportsPage() {
               </tbody>
             </table>
           </div>
+=======
+          <Panel noPadding>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1100px] border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-canvas text-left">
+                    <th className="px-3 py-2.5">
+                      <SortHeader label="Date" active={sortKey === "date"} dir={sortDir} onClick={() => toggleSort("date")} />
+                    </th>
+                    <th className="px-3 py-2.5">
+                      <SortHeader label="Employee" active={sortKey === "employee"} dir={sortDir} onClick={() => toggleSort("employee")} />
+                    </th>
+                    <th className="px-3 py-2.5 font-medium text-ink-faint">Worked On</th>
+                    <th className="px-3 py-2.5 font-medium text-ink-faint">Completed</th>
+                    <th className="px-3 py-2.5 font-medium text-ink-faint">Remains</th>
+                    <th className="px-3 py-2.5 font-medium text-ink-faint">Blockers</th>
+                    <th className="px-3 py-2.5">
+                      <SortHeader label="Submitted" active={sortKey === "submittedAt"} dir={sortDir} onClick={() => toggleSort("submittedAt")} />
+                    </th>
+                    <th className="px-3 py-2.5 text-right font-medium text-ink-faint">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredReports.map((report) => {
+                    const employee = employees.find((e) => e.id === report.employeeId);
+                    const isSelf = employee?.id === currentUser.id;
+                    const canEdit = isSelf || currentUser.role === "Admin";
+
+                    return (
+                      <tr
+                        key={report.id}
+                        className="border-b border-border last:border-0 hover:bg-brand-50/30 cursor-pointer transition-colors"
+                        onClick={() => {
+                          setOpenInEditMode(false);
+                          setSelectedReportId(report.id);
+                        }}
+                      >
+                        <td className="px-3 py-2.5 align-top font-medium text-ink whitespace-nowrap">
+                          {formatDate(report.date)}
+                        </td>
+                        <td className="px-3 py-2.5 align-top">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-ink">{employee?.name ?? "Unknown"}</span>
+                            {isSelf && (
+                              <span className="rounded bg-blue-50 px-1 py-0.5 text-[9px] font-bold text-blue-700 border border-blue-200">
+                                You
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 align-top max-w-[180px]">
+                          <p className="line-clamp-3 text-ink-muted whitespace-pre-wrap">{report.workedOn || "ΓÇö"}</p>
+                        </td>
+                        <td className="px-3 py-2.5 align-top max-w-[160px]">
+                          <p className="line-clamp-3 text-ink-muted whitespace-pre-wrap">{report.completed || "ΓÇö"}</p>
+                        </td>
+                        <td className="px-3 py-2.5 align-top max-w-[160px]">
+                          <p className="line-clamp-3 text-ink-muted whitespace-pre-wrap">{report.remaining || "ΓÇö"}</p>
+                        </td>
+                        <td className="px-3 py-2.5 align-top max-w-[140px]">
+                          <p className={`line-clamp-3 whitespace-pre-wrap ${report.blockers ? "text-rose-700 font-medium" : "text-ink-faint"}`}>
+                            {report.blockers || "ΓÇö"}
+                          </p>
+                        </td>
+                        <td className="px-3 py-2.5 align-top text-ink-faint whitespace-nowrap">
+                          {formatDateTime(report.submittedAt)}
+                        </td>
+                        <td className="px-3 py-2.5 align-top text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                          setOpenInEditMode(false);
+                          setSelectedReportId(report.id);
+                        }}
+                              className="rounded bg-blue-50 border border-blue-200 px-2 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-100"
+                            >
+                              Open
+                            </button>
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenInEditMode(true);
+                                  setSelectedReportId(report.id);
+                                }}
+                                className="text-[11px] font-medium text-brand-600 hover:underline"
+                              >
+                                Edit
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
         ) : (
-          /* Card view */
           <div className="space-y-4">
             {filteredReports.map((report) => {
               const employee = employees.find((e) => e.id === report.employeeId);
@@ -476,7 +673,6 @@ export default function DailyReportsPage() {
               const colorIdx = employee ? (employee.name.charCodeAt(0) + employee.id.charCodeAt(0)) % avatarColors.length : 0;
               const avatarClass = avatarColors[colorIdx];
               const hasContent = report.workedOn || report.completed || report.remaining || report.blockers;
-              const commentsForReport = reportComments.filter((c) => c.reportId === report.id);
 
               return (
                 <div
@@ -524,6 +720,7 @@ export default function DailyReportsPage() {
                     </div>
 
                     <div className="text-right flex-shrink-0 space-y-1">
+<<<<<<< HEAD
                       <div className="flex items-center gap-2 justify-end">
                         <span className="inline-flex items-center gap-1 rounded bg-canvas border border-border px-2.5 py-1 text-xs font-semibold text-ink">
                           📅 {formatDate(report.date)}
@@ -543,6 +740,12 @@ export default function DailyReportsPage() {
                           {formatDateTime(report.submittedAt)}
                         </p>
                       )}
+=======
+                      <span className="inline-flex items-center gap-1 rounded bg-canvas border border-border px-2.5 py-1 text-xs font-semibold text-ink">
+                        ≡ƒôà {formatDate(report.date)}
+                      </span>
+                      <p className="text-[10px] text-ink-faint">{formatDateTime(report.submittedAt)}</p>
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
                     </div>
                   </div>
 
@@ -605,8 +808,13 @@ export default function DailyReportsPage() {
                     </div>
                   )}
 
+<<<<<<< HEAD
                   <ReportComments reportId={report.id} comments={commentsForReport} />
                 </div>
+=======
+                  <p className="text-[11px] font-medium text-brand-600">Click to open details & comments ΓåÆ</p>
+                </button>
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
               );
             })}
           </div>
@@ -616,7 +824,53 @@ export default function DailyReportsPage() {
       {modalOpen && (
         <Modal title="Submit Daily Report" onClose={() => setModalOpen(false)} wide>
           <form onSubmit={handleSubmit} className="space-y-4">
+<<<<<<< HEAD
             <ReportFields form={form} setForm={setForm} showEmployeeLabel={currentUser.name} />
+=======
+            <Field label="Employee">
+              <p className="pt-1.5 text-sm font-medium text-ink">{currentUser.name}</p>
+            </Field>
+            <Field label="Date">
+              <input
+                type="date"
+                className="input"
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                required
+              />
+            </Field>
+            <Field label="What I worked on" hint="Describe tasks and activities tackled today.">
+              <textarea
+                className="input min-h-[70px] resize-none"
+                value={form.workedOn}
+                onChange={(e) => setForm({ ...form, workedOn: e.target.value })}
+                placeholder="e.g. Worked on the client authentication flow and UI components..."
+                required
+              />
+            </Field>
+            <Field label="What I completed" hint="List deliverables or finished pieces.">
+              <textarea
+                className="input min-h-[60px] resize-none"
+                value={form.completed}
+                onChange={(e) => setForm({ ...form, completed: e.target.value })}
+              />
+            </Field>
+            <Field label="What remains" hint="Note planned next steps for tomorrow.">
+              <textarea
+                className="input min-h-[60px] resize-none"
+                value={form.remaining}
+                onChange={(e) => setForm({ ...form, remaining: e.target.value })}
+              />
+            </Field>
+            <Field label="Blockers" hint="Mention anything preventing progress.">
+              <textarea
+                className="input min-h-[60px] resize-none"
+                value={form.blockers}
+                onChange={(e) => setForm({ ...form, blockers: e.target.value })}
+                placeholder="Leave blank if none."
+              />
+            </Field>
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
             <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
               <SecondaryButton
                 type="button"
@@ -639,6 +893,7 @@ export default function DailyReportsPage() {
         </Modal>
       )}
 
+<<<<<<< HEAD
       {editingReport && (
         <Modal title="Edit Daily Report" onClose={() => setEditingReport(null)} wide>
           <form onSubmit={handleEditSubmit} className="space-y-4">
@@ -667,6 +922,19 @@ export default function DailyReportsPage() {
             </div>
           </form>
         </Modal>
+=======
+      {/* Detail / Comment / Edit Modal */}
+      {selectedReport && (
+        <DailyReportDetailModal
+          report={selectedReport}
+          employee={selectedEmployee}
+          startInEditMode={openInEditMode}
+          onClose={() => {
+            setSelectedReportId(null);
+            setOpenInEditMode(false);
+          }}
+        />
+>>>>>>> 41e4dd42d738ad8294ae99c8fe8b2175a55bb829
       )}
     </AppShell>
   );

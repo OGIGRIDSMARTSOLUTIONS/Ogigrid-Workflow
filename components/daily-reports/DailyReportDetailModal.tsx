@@ -9,7 +9,7 @@ import { useApp } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
 import { formatDate, formatDateTime } from "@/lib/data";
-import { DailyReport, DailyReportComment, Employee } from "@/lib/types";
+import { DailyReport, Employee, ReportComment } from "@/lib/types";
 
 type ReportForm = {
   date: string;
@@ -40,11 +40,11 @@ export function DailyReportDetailModal({
   startInEditMode?: boolean;
   onClose: () => void;
 }) {
-  const { employees, updateDailyReport, addDailyReportComment } = useApp();
+  const { employees, updateDailyReport, addReportComment } = useApp();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
 
-  const [comments, setComments] = useState<DailyReportComment[]>([]);
+  const [comments, setComments] = useState<ReportComment[]>([]);
   const [loadingComments, setLoadingComments] = useState(true);
   const [commentText, setCommentText] = useState("");
   const [postingComment, setPostingComment] = useState(false);
@@ -89,7 +89,7 @@ export function DailyReportDetailModal({
     if (!commentText.trim() || postingComment) return;
     setPostingComment(true);
     try {
-      const comment = await addDailyReportComment(report.id, commentText.trim());
+      const comment = await addReportComment(report.id, commentText.trim());
       setComments((prev) => [...prev, comment]);
       setCommentText("");
       showToast("Comment posted.");
@@ -239,7 +239,7 @@ export function DailyReportDetailModal({
           ) : (
             <ul className="space-y-2 max-h-48 overflow-y-auto">
               {comments.map((comment) => {
-                const author = employees.find((e) => e.id === comment.authorId);
+                const author = employees.find((e) => e.id === comment.employeeId);
                 return (
                   <li key={comment.id} className="rounded-md border border-border bg-panel p-2.5">
                     <div className="flex items-center justify-between gap-2">

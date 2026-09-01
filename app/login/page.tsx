@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
+import { consumeIdleLogoutMessage } from "@/lib/clientSession";
 import { Field, PrimaryButton, SecondaryButton } from "@/components/ui/FormControls";
 import { Role } from "@/lib/types";
 
@@ -24,6 +25,11 @@ export default function LoginPage() {
   });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const idleMessage = consumeIdleLogoutMessage();
+    if (idleMessage) setError(idleMessage);
+  }, []);
 
   const effectiveMode: Mode = isFirstRun ? "signup" : mode;
 

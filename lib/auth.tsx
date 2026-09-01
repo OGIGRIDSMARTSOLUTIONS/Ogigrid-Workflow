@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { clearBrowserAppData, touchLastActivity } from "./clientSession";
 import { Employee } from "./types";
 
 interface AuthContextValue {
@@ -54,12 +55,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!res.ok) return { ok: false, error: data.error ?? "Unable to log in." };
     setCurrentUser(data.user);
     setWorkspaceHasUsers(true);
+    touchLastActivity();
     return { ok: true };
   }
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await fetch("/api/auth/logout", { method: "POST", cache: "no-store", credentials: "same-origin" });
     setCurrentUser(null);
+    clearBrowserAppData();
   }
 
   async function signup(input: {

@@ -37,7 +37,15 @@ export async function destroySession() {
   if (token) {
     await query("DELETE FROM sessions WHERE token = $1", [token]);
   }
-  cookies().delete(COOKIE_NAME);
+  // Explicitly expire the cookie so the browser cannot reuse it.
+  cookies().set(COOKIE_NAME, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+    expires: new Date(0),
+  });
 }
 
 // Returns the authenticated employee (mapped, no password) for the current

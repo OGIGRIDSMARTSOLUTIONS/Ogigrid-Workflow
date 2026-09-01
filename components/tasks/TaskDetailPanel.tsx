@@ -8,7 +8,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useApp } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
-import { priorityOptions, statusOptions } from "@/lib/data";
+import { priorityOptions, statusOptions, normalizeTaskProgressStatus } from "@/lib/data";
 import { Task, TaskPriority, TaskStatus } from "@/lib/types";
 
 interface TaskDetailPanelProps {
@@ -55,7 +55,9 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
           assigneeId: draft.assigneeId,
           status: draft.status,
           priority: draft.priority,
+          startDate: draft.startDate,
           durationDays: draft.durationDays,
+          deadline: draft.deadline,
           progress: draft.progress,
           dependsOnTaskId: draft.dependsOnTaskId,
         }
@@ -158,7 +160,11 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
             className="input"
             value={draft.status}
             disabled={!canEditStatus}
-            onChange={(e) => setDraft({ ...draft, status: e.target.value as TaskStatus })}
+            onChange={(e) => {
+              const status = e.target.value as TaskStatus;
+              const normalized = normalizeTaskProgressStatus(status, draft.progress);
+              setDraft({ ...draft, ...normalized });
+            }}
           >
             {statusOptions.map((status) => (
               <option key={status} value={status}>
@@ -170,7 +176,16 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Start date">
-            <p className="pt-1.5 text-sm text-ink">{draft.startDate}</p>
+            {canEditFull ? (
+              <input
+                type="date"
+                className="input"
+                value={draft.startDate}
+                onChange={(e) => setDraft({ ...draft, startDate: e.target.value })}
+              />
+            ) : (
+              <p className="pt-1.5 text-sm text-ink">{draft.startDate}</p>
+            )}
           </Field>
           <Field label="Duration (days)">
             {canEditFull ? (
@@ -190,7 +205,16 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
         </div>
 
         <Field label="Deadline">
-          <p className="pt-1.5 text-sm text-ink">{draft.deadline}</p>
+          {canEditFull ? (
+            <input
+              type="date"
+              className="input"
+              value={draft.deadline}
+              onChange={(e) => setDraft({ ...draft, deadline: e.target.value })}
+            />
+          ) : (
+            <p className="pt-1.5 text-sm text-ink">{draft.deadline}</p>
+          )}
         </Field>
 
         <Field label={`Progress — ${draft.progress}%`}>
@@ -202,8 +226,18 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
             disabled={!canEditStatus}
             className="w-full accent-brand-600"
             value={draft.progress}
-            onChange={(e) => setDraft({ ...draft, progress: Number(e.target.value) })}
+            onChange={(e) => {
+              const progress = Number(e.target.value);
+              const normalized = normalizeTaskProgressStatus(draft.status, progress);
+              setDraft({ ...draft, ...normalized });
+            }}
           />
+          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-canvas border border-border/60">
+            <div
+              className="h-full rounded-full bg-brand-500 transition-all"
+              style={{ width: `${draft.progress}%` }}
+            />
+          </div>
         </Field>
 
         <Field label="Depends on">
