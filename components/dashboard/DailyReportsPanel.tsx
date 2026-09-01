@@ -106,7 +106,7 @@ export function DailyReportsPanel({
                   <button
                     type="button"
                     onClick={() => openReport(report, employee)}
-                    className="w-full rounded-md px-1 py-1.5 text-left transition-colors hover:bg-brand-50/50"
+                    className="group w-full rounded-md px-1 py-1.5 text-left transition-colors hover:bg-brand-50/50 cursor-pointer"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
@@ -125,7 +125,48 @@ export function DailyReportsPanel({
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <SubmissionBadge submitted={submittedToday} />
-                        <span className="text-[10px] font-medium text-brand-600">Open →</span>
+                        <span className="text-[10px] font-medium text-brand-600 group-hover:underline">
+                          Open →
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 pl-8 text-xs">
+                      <div className="rounded-md bg-canvas/80 p-2.5 border border-border/80 space-y-1.5 group-hover:border-brand-200 transition-colors">
+                        {report.workedOn && (
+                          <div>
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-ink-muted block">
+                              Worked on
+                            </span>
+                            <p className="text-ink line-clamp-2 whitespace-pre-wrap">{report.workedOn}</p>
+                          </div>
+                        )}
+                        {report.completed && (
+                          <div>
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-700 block">
+                              Completed
+                            </span>
+                            <p className="text-ink line-clamp-2 whitespace-pre-wrap">{report.completed}</p>
+                          </div>
+                        )}
+                        {report.remaining && (
+                          <div>
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-blue-700 block">
+                              Next Steps
+                            </span>
+                            <p className="text-ink line-clamp-1 whitespace-pre-wrap">{report.remaining}</p>
+                          </div>
+                        )}
+                        {report.blockers && (
+                          <div className="rounded bg-rose-50/70 p-1.5 border border-rose-200/60">
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-rose-700 block">
+                              Blockers
+                            </span>
+                            <p className="text-rose-950 font-medium line-clamp-1 whitespace-pre-wrap">
+                              {report.blockers}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </button>

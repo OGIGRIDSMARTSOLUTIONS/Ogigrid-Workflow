@@ -5,7 +5,6 @@ import {
   ActivityItem,
   AppNotification,
   DailyReport,
-  DailyReportComment,
   DocumentItem,
   Employee,
   Meeting,
@@ -104,12 +103,8 @@ interface AppActions {
 
   addDailyReport: (input: Record<string, unknown>) => Promise<DailyReport>;
   updateDailyReport: (id: string, patch: Record<string, unknown>) => Promise<DailyReport>;
-<<<<<<< HEAD
   addReportComment: (reportId: string, body: string) => Promise<ReportComment>;
   deleteReportComment: (reportId: string, commentId: string) => Promise<void>;
-=======
-  addDailyReportComment: (reportId: string, body: string) => Promise<DailyReportComment>;
->>>>>>> 4b5b146cb59da56315b0b76f846056cfb5f4e25c
 
   markNotificationRead: (id: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
@@ -219,21 +214,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         mutate("/api/daily-reports", { method: "POST", body: JSON.stringify(input) }, (d) => d.report),
       updateDailyReport: (id, patch) =>
         mutate(`/api/daily-reports/${id}`, { method: "PATCH", body: JSON.stringify(patch) }, (d) => d.report),
-<<<<<<< HEAD
       addReportComment: (reportId, body) =>
-=======
-      addDailyReportComment: (reportId, body) =>
->>>>>>> 4b5b146cb59da56315b0b76f846056cfb5f4e25c
         mutate(
           `/api/daily-reports/${reportId}/comments`,
           { method: "POST", body: JSON.stringify({ body }) },
           (d) => d.comment
         ),
-<<<<<<< HEAD
       deleteReportComment: (reportId, commentId) =>
         mutate(`/api/daily-reports/${reportId}/comments/${commentId}`, { method: "DELETE" }, () => undefined),
-=======
->>>>>>> 4b5b146cb59da56315b0b76f846056cfb5f4e25c
 
       markNotificationRead: (id) =>
         mutate(`/api/notifications/${id}/read`, { method: "PATCH" }, () => undefined),

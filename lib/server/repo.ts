@@ -8,11 +8,7 @@ import {
   mapMeeting,
   mapDocument,
   mapDailyReport,
-<<<<<<< HEAD
   mapReportComment,
-=======
-  mapDailyReportComment,
->>>>>>> 4b5b146cb59da56315b0b76f846056cfb5f4e25c
   mapNotification,
   mapActivity,
 } from "./mappers";
@@ -919,30 +915,27 @@ export async function findDailyReportById(id: string) {
   return row ? mapDailyReport(row) : null;
 }
 
+// Only the report's own author or an Admin may edit it — enforced here,
+// not just by hiding the Edit button in the UI.
 export async function updateDailyReport(
   id: string,
-  patch: Partial<{
-    date: string;
-    workedOn: string;
-    completed: string;
-    remaining: string;
-    blockers: string;
-  }>
+  patch: Partial<{ date: string; workedOn: string; completed: string; remaining: string; blockers: string }>,
+  actorId: string,
+  isAdmin: boolean
 ) {
-  const existing = await queryOne<any>(`SELECT * FROM daily_reports WHERE id = $1`, [id]);
-  if (!existing) return null;
+  const existing = await findDailyReportById(id);
+  if (!existing) return { ok: false as const, error: "Report not found." };
+  if (existing.employeeId !== actorId && !isAdmin) {
+    return { ok: false as const, error: "You can only edit your own report." };
+  }
 
   const row = await queryOne<any>(
     `UPDATE daily_reports SET
-       date = $1,
-       worked_on = $2,
-       completed = $3,
-       remaining = $4,
-       blockers = $5
+       date = $1, worked_on = $2, completed = $3, remaining = $4, blockers = $5
      WHERE id = $6 RETURNING *`,
     [
       patch.date ?? existing.date,
-      patch.workedOn ?? existing.worked_on,
+      patch.workedOn ?? existing.workedOn,
       patch.completed ?? existing.completed,
       patch.remaining ?? existing.remaining,
       patch.blockers ?? existing.blockers,
@@ -950,49 +943,9 @@ export async function updateDailyReport(
     ]
   );
 
-  const employee = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [existing.employee_id]);
+  const employee = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [existing.employeeId]);
   await logActivity(`${employee?.name ?? "An employee"} updated a daily report.`);
-  return mapDailyReport(row);
-}
-
-export async function listDailyReportComments(reportId: string) {
-  const rows = await query<any>(
-    `SELECT * FROM daily_report_comments WHERE report_id = $1 ORDER BY created_at ASC`,
-    [reportId]
-  );
-  return rows.map(mapDailyReportComment);
-}
-
-export async function createDailyReportComment(input: {
-  reportId: string;
-  authorId: string;
-  body: string;
-}) {
-  const report = await queryOne<any>(`SELECT * FROM daily_reports WHERE id = $1`, [input.reportId]);
-  if (!report) return null;
-
-  const row = await queryOne<any>(
-    `INSERT INTO daily_report_comments (report_id, author_id, body)
-     VALUES ($1, $2, $3) RETURNING *`,
-    [input.reportId, input.authorId, input.body.trim()]
-  );
-
-  const author = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [input.authorId]);
-  const reportOwnerId = report.employee_id;
-
-  if (reportOwnerId !== input.authorId) {
-    await notify(
-      reportOwnerId,
-      "daily-report",
-      "New comment on your report",
-      `${author?.name ?? "A teammate"} commented on your daily report.`,
-      "report",
-      input.reportId
-    );
-  }
-
-  await logActivity(`${author?.name ?? "Someone"} commented on a daily report.`);
-  return mapDailyReportComment(row);
+  return { ok: true as const, report: mapDailyReport(row) };
 }
 
 export async function createDailyReport(input: {
@@ -1029,43 +982,17 @@ export async function createDailyReport(input: {
   return mapDailyReport(row);
 }
 
-export async function findDailyReportById(id: string) {
-  return queryOne<any>(`SELECT * FROM daily_reports WHERE id = $1`, [id]);
-}
-
-// Only the report's own author or an Admin may edit it — enforced here,
-// not just by hiding the Edit button in the UI.
-export async function updateDailyReport(
-  id: string,
-  patch: Partial<{ date: string; workedOn: string; completed: string; remaining: string; blockers: string }>,
-  actorId: string,
-  isAdmin: boolean
-) {
-  const existing = await findDailyReportById(id);
-  if (!existing) return { ok: false as const, error: "Report not found." };
-  if (existing.employee_id !== actorId && !isAdmin) {
-    return { ok: false as const, error: "You can only edit your own report." };
-  }
-
-  const row = await queryOne<any>(
-    `UPDATE daily_reports SET
-       date = $1, worked_on = $2, completed = $3, remaining = $4, blockers = $5
-     WHERE id = $6 RETURNING *`,
-    [
-      patch.date ?? existing.date,
-      patch.workedOn ?? existing.worked_on,
-      patch.completed ?? existing.completed,
-      patch.remaining ?? existing.remaining,
-      patch.blockers ?? existing.blockers,
-      id,
-    ]
-  );
-  return { ok: true as const, report: mapDailyReport(row) };
-}
-
 // ---------------------------------------------------------------------
 // Daily report comments — anyone can comment on anyone's report.
 // ---------------------------------------------------------------------
+
+export async function listDailyReportComments(reportId: string) {
+  const rows = await query<any>(
+    `SELECT * FROM daily_report_comments WHERE report_id = $1 ORDER BY created_at ASC`,
+    [reportId]
+  );
+  return rows.map(mapReportComment);
+}
 
 export async function listReportComments() {
   const rows = await query<any>(`SELECT * FROM daily_report_comments ORDER BY created_at ASC`);
@@ -1079,10 +1006,10 @@ export async function createReportComment(reportId: string, employeeId: string, 
   );
 
   const report = await findDailyReportById(reportId);
-  if (report && report.employee_id !== employeeId) {
+  if (report && report.employeeId !== employeeId) {
     const commenter = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [employeeId]);
     await notify(
-      report.employee_id,
+      report.employeeId,
       "daily-report",
       "New comment on your daily report",
       `${commenter?.name ?? "Someone"} commented on your report for ${report.date}.`,
