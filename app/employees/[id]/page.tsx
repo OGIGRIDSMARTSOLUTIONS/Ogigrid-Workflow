@@ -43,11 +43,11 @@ export default function EmployeeProfilePage() {
 
   if (!employee) {
     return (
-      <AppShell title="Employee not found">
+      <AppShell title="Partner not found">
         <EmptyState
-          title="This employee doesn't exist"
+          title="This partner doesn't exist"
           description="They may have been removed from the team."
-          action={<SecondaryButton onClick={() => router.push("/employees")}>Back to Employees</SecondaryButton>}
+          action={<SecondaryButton onClick={() => router.push("/employees")}>Back to Partners</SecondaryButton>}
         />
       </AppShell>
     );
@@ -66,20 +66,20 @@ export default function EmployeeProfilePage() {
         isSelf
           ? "Your profile and assigned work."
           : isAdmin
-          ? "Admin view: employee details, assignments, and reports."
+          ? "Admin view: partner details, assignments, and reports."
           : "Teammate member card."
       }
     >
       <div className="mb-2 text-xs text-ink-faint">
         <Link href="/employees" className="hover:text-brand-600 hover:underline">
-          Employees
+          Partners
         </Link>{" "}
         / {employee.name}
       </div>
 
       <div className="flex items-center gap-2 mb-4">
         <SecondaryButton onClick={() => router.push("/employees")}>
-          ← Back to Employees
+          ← Back to Partners
         </SecondaryButton>
         <Link
           href="/dashboard"
@@ -239,10 +239,13 @@ export default function EmployeeProfilePage() {
                   {employee.initials}
                 </div>
                 <div>
-                  <p className="font-semibold text-ink">{employee.name}</p>
-                  <p className="text-xs text-ink-faint">
-                    {employee.role === "Admin" ? "Administrator" : "Employee"}
-                    {employee.isPrimaryAdmin && " · Primary"}
+                  <p className="font-semibold text-ink flex items-center gap-1.5">
+                    {employee.name}
+                    {employee.isPrimaryAdmin && (
+                      <span className="rounded-sm bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700">
+                        Lead
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -279,7 +282,7 @@ export default function EmployeeProfilePage() {
                   onClick={() => router.push("/employees")}
                   className="w-full mt-2"
                 >
-                  Manage in Employees List
+                  Manage in Partners List
                 </SecondaryButton>
               )}
             </div>
@@ -296,22 +299,13 @@ export default function EmployeeProfilePage() {
                 </div>
                 <div>
                   <h3 className="text-base font-semibold text-ink">{employee.name}</h3>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span
-                      className={`inline-flex items-center rounded-sm px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                        employee.role === "Admin"
-                          ? "bg-brand-100 text-brand-700"
-                          : "bg-slate-100 text-slate-700"
-                      }`}
-                    >
-                      {employee.role === "Admin" ? "Administrator" : "Employee"}
-                    </span>
-                    {employee.isPrimaryAdmin && (
+                  {employee.isPrimaryAdmin && (
+                    <div className="flex items-center gap-2 mt-0.5">
                       <span className="rounded-sm bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700">
-                        Primary
+                        Lead
                       </span>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

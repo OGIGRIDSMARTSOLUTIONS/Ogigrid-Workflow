@@ -33,7 +33,7 @@ export function ScheduleGrid({
         <thead>
           <tr>
             <th className="w-48 border-b border-r border-border bg-canvas px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-ink-faint">
-              Employee
+              Partner
             </th>
             {weekDates.map((date) => {
               const { weekday, day } = formatWeekdayHeader(date);

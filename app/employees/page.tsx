@@ -86,7 +86,7 @@ export default function EmployeesPage() {
           role: form.accountRole,
         };
         await updateEmployee(editingId, patch);
-        showToast("Employee workspace details updated successfully.");
+        showToast("Partner workspace details updated successfully.");
       } else {
         if (!form.name.trim() || !form.email.trim()) {
           showToast("Name and email are required.", "error");
@@ -106,7 +106,7 @@ export default function EmployeesPage() {
           departments: form.departments,
           status: form.status,
         });
-        showToast("Employee added successfully.");
+        showToast("Partner added successfully.");
       }
       setModalOpen(false);
     } catch (err) {
@@ -120,7 +120,7 @@ export default function EmployeesPage() {
     try {
       const nextRole: Role = employee.role === "Admin" ? "Employee" : "Admin";
       await updateEmployee(employee.id, { role: nextRole });
-      showToast(nextRole === "Admin" ? "Employee promoted to Administrator." : "Administrator demoted to Employee.");
+      showToast(nextRole === "Admin" ? "Partner promoted to Administrator." : "Administrator demoted to Partner.");
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Unable to change role.", "error");
     }
@@ -137,7 +137,7 @@ export default function EmployeesPage() {
       : { type: "unassign" };
     try {
       await deleteEmployee(removalTarget.id, strategy);
-      showToast("Employee removed successfully.");
+      showToast("Partner removed successfully.");
       setRemovalTarget(null);
       setReassignTo("");
     } catch (err) {
@@ -150,20 +150,20 @@ export default function EmployeesPage() {
   );
 
   return (
-    <AppShell title="Employees" subtitle="Everyone on the Ogigrid team.">
+    <AppShell title="Partners" subtitle="Everyone on the Ogigrid team.">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <p className="text-sm text-ink-muted">
             {employees.length} {employees.length === 1 ? "member" : "members"}
           </p>
-          {isAdmin && <PrimaryButton onClick={openCreate}>+ Add Employee</PrimaryButton>}
+          {isAdmin && <PrimaryButton onClick={openCreate}>+ Add Partner</PrimaryButton>}
         </div>
 
         {employees.length === 0 ? (
           <EmptyState
-            title="No employees added"
+            title="No partners added"
             description="Add team members so they can be assigned to projects, tasks and the schedule."
-            action={isAdmin ? <PrimaryButton onClick={openCreate}>+ Add Employee</PrimaryButton> : undefined}
+            action={isAdmin ? <PrimaryButton onClick={openCreate}>+ Add Partner</PrimaryButton> : undefined}
           />
         ) : (
           <Panel noPadding>
@@ -172,7 +172,6 @@ export default function EmployeesPage() {
                 <thead>
                   <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-ink-faint">
                     <th className="px-4 py-2 font-medium">Name</th>
-                    <th className="px-4 py-2 font-medium">Role</th>
                     <th className="px-4 py-2 font-medium">Departments</th>
                     <th className="px-4 py-2 font-medium">Email</th>
                     <th className="px-4 py-2 font-medium">Status</th>
@@ -188,25 +187,12 @@ export default function EmployeesPage() {
                             {employee.initials}
                           </div>
                           <span className="font-medium text-ink hover:underline">{employee.name}</span>
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-ink-muted">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`inline-flex items-center rounded-sm px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                              employee.role === "Admin"
-                                ? "bg-brand-100 text-brand-700"
-                                : "bg-slate-100 text-slate-700"
-                            }`}
-                          >
-                            {employee.role === "Admin" ? "Administrator" : "Employee"}
-                          </span>
                           {employee.isPrimaryAdmin && (
                             <span className="rounded-sm bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700">
-                              Primary
+                              Lead
                             </span>
                           )}
-                        </div>
+                        </Link>
                       </td>
                       <td className="px-4 py-3">
                         {employee.departments.length ? (
@@ -264,12 +250,12 @@ export default function EmployeesPage() {
       </div>
 
       {modalOpen && (
-        <Modal title={editingId ? "Edit Workspace Role & Departments" : "Add Employee"} onClose={() => setModalOpen(false)}>
+        <Modal title={editingId ? "Edit Workspace Role & Departments" : "Add Partner"} onClose={() => setModalOpen(false)}>
           <form onSubmit={handleSubmit} className="space-y-4">
             {editingId ? (
               <div className="rounded-md border border-border bg-canvas/60 p-3 text-xs text-ink-muted space-y-1.5">
                 <p>
-                  <strong className="text-ink font-medium">Employee:</strong> {form.name}
+                  <strong className="text-ink font-medium">Partner:</strong> {form.name}
                 </p>
                 <p>
                   <strong className="text-ink font-medium">Email:</strong> {form.email}
@@ -321,7 +307,7 @@ export default function EmployeesPage() {
                 disabled={editingId === currentUser.id && !!employees.find((e) => e.id === editingId)?.isPrimaryAdmin}
                 onChange={(e) => setForm({ ...form, accountRole: e.target.value as Role })}
               >
-                <option value="Employee">Employee</option>
+                <option value="Employee">Partner</option>
                 <option value="Admin">Admin</option>
               </select>
             </Field>
@@ -386,7 +372,7 @@ export default function EmployeesPage() {
                 loadingText={editingId ? "Saving changes..." : "Adding employee..."}
                 className="w-full sm:w-auto"
               >
-                {editingId ? "Save Changes" : "Add Employee"}
+                {editingId ? "Save Changes" : "Add Partner"}
               </PrimaryButton>
             </div>
           </form>
@@ -431,7 +417,7 @@ export default function EmployeesPage() {
               onClick={handleConfirmDelete}
               className="bg-status-notsubmitted hover:bg-status-notsubmitted"
             >
-              Remove Employee
+              Remove Partner
             </PrimaryButton>
           </div>
         </Modal>

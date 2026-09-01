@@ -50,7 +50,7 @@ export function ReportComments({ reportId, comments }: { reportId: string; comme
             return (
               <div key={comment.id} className="flex items-start justify-between gap-2 text-xs">
                 <div className="min-w-0">
-                  <span className="font-semibold text-ink">{author?.name ?? "Former Employee"}</span>
+                  <span className="font-semibold text-ink">{author?.name ?? "Former Partner"}</span>
                   <span className="text-ink-faint ml-1.5">{formatDateTime(comment.createdAt)}</span>
                   <p className="text-ink-muted mt-0.5 whitespace-pre-wrap break-words">{comment.body}</p>
                 </div>

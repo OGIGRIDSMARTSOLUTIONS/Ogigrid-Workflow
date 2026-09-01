@@ -277,7 +277,7 @@ export default function SettingsPage() {
           <Panel title="Departments">
             <p className="text-sm text-ink-muted">
               Departments currently in use across the team. New departments can be added from the
-              Employees page when adding or editing a team member.
+              Partners page when adding or editing a team member.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {activeDepartments.map((dep) => (
@@ -296,7 +296,7 @@ export default function SettingsPage() {
           <Panel title="Workspace summary">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Employees</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Partners</p>
                 <p className="mt-0.5 text-lg font-semibold text-ink">{employees.length}</p>
               </div>
               <div>
@@ -310,9 +310,9 @@ export default function SettingsPage() {
         {isAdmin && (
           <Panel title="Permissions">
             <p className="text-sm text-ink-muted">
-              Admins can manage employees, projects, tasks, meetings and documents. The Primary
+              Admins can manage partners, projects, tasks, meetings and documents. The Primary
               Administrator can never be removed, demoted, or deactivated by anyone, including
-              other Admins. Employees can view what they're assigned to or a member of, update
+              other Admins. Partners can view what they're assigned to or a member of, update
               their own task status/progress, and submit their own daily reports.
             </p>
           </Panel>

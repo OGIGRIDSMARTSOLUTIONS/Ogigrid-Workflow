@@ -8,11 +8,7 @@ import {
   mapMeeting,
   mapDocument,
   mapDailyReport,
-<<<<<<< HEAD
   mapReportComment,
-=======
-  mapDailyReportComment,
->>>>>>> 4b5b146cb59da56315b0b76f846056cfb5f4e25c
   mapNotification,
   mapActivity,
 } from "./mappers";
@@ -28,12 +24,12 @@ export async function notify(
   title: string,
   message: string,
   relatedType: string | null = null,
-  relatedId: string | null = null
+  relatedId: string | null = null,
 ) {
   await query(
     `INSERT INTO notifications (user_id, type, title, message, related_type, related_id)
      VALUES ($1,$2,$3,$4,$5,$6)`,
-    [userId, type, title, message, relatedType, relatedId]
+    [userId, type, title, message, relatedType, relatedId],
   );
 }
 
@@ -43,11 +39,11 @@ export async function notifyAdmins(
   title: string,
   message: string,
   relatedType: string | null = null,
-  relatedId: string | null = null
+  relatedId: string | null = null,
 ) {
   const admins = await query<{ id: string }>(
     `SELECT id FROM employees WHERE role = 'Admin' AND status = 'Active' AND id != COALESCE($1::uuid, '00000000-0000-0000-0000-000000000000'::uuid)`,
-    [excludeUserId]
+    [excludeUserId],
   );
   for (const admin of admins) {
     await notify(admin.id, type, title, message, relatedType, relatedId);
@@ -63,7 +59,10 @@ export async function logActivity(description: string) {
 // ---------------------------------------------------------------------
 
 export async function findEmployeeByEmail(email: string) {
-  return queryOne<any>(`SELECT * FROM employees WHERE lower(email) = lower($1)`, [email]);
+  return queryOne<any>(
+    `SELECT * FROM employees WHERE lower(email) = lower($1)`,
+    [email],
+  );
 }
 
 export async function findEmployeeById(id: string) {
@@ -71,12 +70,16 @@ export async function findEmployeeById(id: string) {
 }
 
 export async function countEmployees() {
-  const row = await queryOne<{ count: string }>(`SELECT count(*)::text FROM employees`);
+  const row = await queryOne<{ count: string }>(
+    `SELECT count(*)::text FROM employees`,
+  );
   return Number(row?.count ?? 0);
 }
 
 export async function listEmployees() {
-  const rows = await query<any>(`SELECT * FROM employees ORDER BY created_at ASC`);
+  const rows = await query<any>(
+    `SELECT * FROM employees ORDER BY created_at ASC`,
+  );
   return rows.map(mapEmployee);
 }
 
@@ -95,22 +98,25 @@ export async function createEmployee(input: {
   const legacyParts = legacyName ? legacyName.split(/\s+/).filter(Boolean) : [];
   const firstName = (input.firstName ?? legacyParts[0] ?? "").trim();
   const lastName = (input.lastName ?? legacyParts.slice(1).join(" ")).trim();
-  const name = [firstName, lastName].filter(Boolean).join(" ").trim() || legacyName || "Unknown";
+  const name =
+    [firstName, lastName].filter(Boolean).join(" ").trim() ||
+    legacyName ||
+    "Unknown";
   const passwordHash = await hashPassword(input.password);
   const row = await queryOne<any>(
     `INSERT INTO employees (name, first_name, last_name, email, password_hash, role, departments, status, is_primary_admin)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
     [
-     name,
-     firstName,
-     lastName,
-     input.email,
-     passwordHash,
-     input.role,
-     input.departments,
-     input.status,
-     !!input.isPrimaryAdmin,
-    ]
+      name,
+      firstName,
+      lastName,
+      input.email,
+      passwordHash,
+      input.role,
+      input.departments,
+      input.status,
+      !!input.isPrimaryAdmin,
+    ],
   );
   return mapEmployee(row);
 }
@@ -126,21 +132,42 @@ export async function updateEmployee(
     role: "Admin" | "Employee";
     departments: string[];
     status: "Active" | "Inactive";
-  }>
+  }>,
 ) {
-  const existing = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [id]);
+  const existing = await queryOne<any>(
+    `SELECT * FROM employees WHERE id = $1`,
+    [id],
+  );
   if (!existing) return null;
 
   // The Primary Administrator can never be demoted or deactivated, no
   // matter who's calling this — enforced here, not just in the UI.
-  const role = existing.is_primary_admin ? "Admin" : patch.role ?? existing.role;
-  const status = existing.is_primary_admin ? "Active" : patch.status ?? existing.status;
+  const role = existing.is_primary_admin
+    ? "Admin"
+    : (patch.role ?? existing.role);
+  const status = existing.is_primary_admin
+    ? "Active"
+    : (patch.status ?? existing.status);
 
   const existingNameParts = (existing.name ?? "").split(/\s+/).filter(Boolean);
-  const nextFirstName = (patch.firstName ?? existing.first_name ?? existingNameParts[0] ?? "").trim();
-  const nextLastName = (patch.lastName ?? existing.last_name ?? existingNameParts.slice(1).join(" ")).trim();
-  const nextName = (patch.name ?? [nextFirstName, nextLastName].filter(Boolean).join(" ")).trim() || existing.name;
-  const passwordHash = patch.password ? await hashPassword(patch.password) : existing.password_hash;
+  const nextFirstName = (
+    patch.firstName ??
+    existing.first_name ??
+    existingNameParts[0] ??
+    ""
+  ).trim();
+  const nextLastName = (
+    patch.lastName ??
+    existing.last_name ??
+    existingNameParts.slice(1).join(" ")
+  ).trim();
+  const nextName =
+    (
+      patch.name ?? [nextFirstName, nextLastName].filter(Boolean).join(" ")
+    ).trim() || existing.name;
+  const passwordHash = patch.password
+    ? await hashPassword(patch.password)
+    : existing.password_hash;
 
   const row = await queryOne<any>(
     `UPDATE employees SET
@@ -148,16 +175,16 @@ export async function updateEmployee(
        departments = $7, status = $8
      WHERE id = $9 RETURNING *`,
     [
-     nextName,
-     nextFirstName,
-     nextLastName,
-     patch.email ?? existing.email,
-     passwordHash,
-     role,
-     patch.departments ?? existing.departments,
-     status,
-     id,
-    ]
+      nextName,
+      nextFirstName,
+      nextLastName,
+      patch.email ?? existing.email,
+      passwordHash,
+      role,
+      patch.departments ?? existing.departments,
+      status,
+      id,
+    ],
   );
   return mapEmployee(row);
 }
@@ -175,7 +202,7 @@ export async function createPasswordResetToken(employeeId: string) {
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
   await query(
     `INSERT INTO password_reset_tokens (employee_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
-    [employeeId, tokenHash, expiresAt]
+    [employeeId, tokenHash, expiresAt],
   );
   return rawToken;
 }
@@ -183,26 +210,40 @@ export async function createPasswordResetToken(employeeId: string) {
 // Validates a raw token from a reset link, sets the new password if it's
 // still good, marks the token used, and kills every existing session for
 // that employee so a stolen/open session doesn't survive the reset.
-export async function consumePasswordResetToken(rawToken: string, newPassword: string) {
+export async function consumePasswordResetToken(
+  rawToken: string,
+  newPassword: string,
+) {
   const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
   const row = await queryOne<any>(
     `SELECT * FROM password_reset_tokens
      WHERE token_hash = $1 AND used_at IS NULL AND expires_at > now()`,
-    [tokenHash]
+    [tokenHash],
   );
   if (!row) {
-    return { ok: false as const, error: "This reset link is invalid or has expired." };
+    return {
+      ok: false as const,
+      error: "This reset link is invalid or has expired.",
+    };
   }
 
   const passwordHash = await hashPassword(newPassword);
-  await query(`UPDATE employees SET password_hash = $1 WHERE id = $2`, [passwordHash, row.employee_id]);
-  await query(`UPDATE password_reset_tokens SET used_at = now() WHERE id = $1`, [row.id]);
+  await query(`UPDATE employees SET password_hash = $1 WHERE id = $2`, [
+    passwordHash,
+    row.employee_id,
+  ]);
+  await query(
+    `UPDATE password_reset_tokens SET used_at = now() WHERE id = $1`,
+    [row.id],
+  );
   await query(`DELETE FROM sessions WHERE employee_id = $1`, [row.employee_id]);
 
   return { ok: true as const };
 }
 
-export type EmployeeRemovalStrategy = { type: "unassign" } | { type: "reassign"; toEmployeeId: string };
+export type EmployeeRemovalStrategy =
+  | { type: "unassign" }
+  | { type: "reassign"; toEmployeeId: string };
 
 // Soft-deletes (deactivates) an employee. Historical daily reports and
 // activity are left untouched; unfinished tasks are unassigned or
@@ -210,9 +251,12 @@ export type EmployeeRemovalStrategy = { type: "unassign" } | { type: "reassign";
 export async function deactivateEmployee(
   id: string,
   strategy: EmployeeRemovalStrategy,
-  actorId: string
+  actorId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const existing = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [id]);
+  const existing = await queryOne<any>(
+    `SELECT * FROM employees WHERE id = $1`,
+    [id],
+  );
   if (!existing) return { ok: false, error: "Employee not found." };
   if (existing.is_primary_admin) {
     return { ok: false, error: "The Primary Administrator cannot be removed." };
@@ -224,26 +268,28 @@ export async function deactivateEmployee(
 
     const activeTasks = await client.query(
       `SELECT id, name FROM tasks WHERE assignee_id = $1 AND status != 'Completed'`,
-      [id]
+      [id],
     );
 
     if (strategy.type === "reassign") {
       await client.query(
         `UPDATE tasks SET assignee_id = $1 WHERE assignee_id = $2 AND status != 'Completed'`,
-        [strategy.toEmployeeId, id]
+        [strategy.toEmployeeId, id],
       );
     } else {
       await client.query(
         `UPDATE tasks SET assignee_id = NULL WHERE assignee_id = $1 AND status != 'Completed'`,
-        [id]
+        [id],
       );
     }
 
-    await client.query(`DELETE FROM project_members WHERE employee_id = $1`, [id]);
+    await client.query(`DELETE FROM project_members WHERE employee_id = $1`, [
+      id,
+    ]);
     await client.query(`DELETE FROM sessions WHERE employee_id = $1`, [id]);
     await client.query(
       `UPDATE employees SET status = 'Inactive', deactivated_at = now() WHERE id = $1`,
-      [id]
+      [id],
     );
 
     await client.query("COMMIT");
@@ -256,7 +302,7 @@ export async function deactivateEmployee(
           "New task assigned",
           `You have been assigned "${task.name}" (reassigned from ${existing.name}).`,
           "task",
-          task.id
+          task.id,
         );
       }
     }
@@ -267,7 +313,7 @@ export async function deactivateEmployee(
       "Employee removed",
       `${existing.name} was removed from the team.`,
       "employee",
-      id
+      id,
     );
     return { ok: true };
   } catch (err) {
@@ -281,7 +327,10 @@ export async function deactivateEmployee(
 // Full self-service account deletion (soft delete, same mechanics as
 // deactivateEmployee) — used by "delete my own account".
 export async function deleteOwnAccount(employeeId: string) {
-  const existing = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [employeeId]);
+  const existing = await queryOne<any>(
+    `SELECT * FROM employees WHERE id = $1`,
+    [employeeId],
+  );
   if (!existing) return { ok: false as const, error: "Account not found." };
   if (existing.is_primary_admin) {
     return {
@@ -299,13 +348,15 @@ export async function deleteOwnAccount(employeeId: string) {
 async function getProjectMemberIds(projectId: string) {
   const rows = await query<{ employee_id: string }>(
     `SELECT employee_id FROM project_members WHERE project_id = $1`,
-    [projectId]
+    [projectId],
   );
   return rows.map((r) => r.employee_id);
 }
 
 export async function listProjects() {
-  const rows = await query<any>(`SELECT * FROM projects ORDER BY created_at ASC`);
+  const rows = await query<any>(
+    `SELECT * FROM projects ORDER BY created_at ASC`,
+  );
   const out = [];
   for (const row of rows) {
     out.push(mapProject(row, await getProjectMemberIds(row.id)));
@@ -322,17 +373,23 @@ export async function createProject(
     deadline: string;
     memberIds: string[];
   },
-  actorId: string
+  actorId: string,
 ) {
   const row = await queryOne<any>(
     `INSERT INTO projects (name, description, status, start_date, deadline)
      VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-    [input.name, input.description, input.status, input.startDate || null, input.deadline || null]
+    [
+      input.name,
+      input.description,
+      input.status,
+      input.startDate || null,
+      input.deadline || null,
+    ],
   );
   for (const employeeId of input.memberIds) {
     await query(
       `INSERT INTO project_members (project_id, employee_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
-      [row.id, employeeId]
+      [row.id, employeeId],
     );
   }
   await logActivity(`Project "${row.name}" was created.`);
@@ -343,7 +400,7 @@ export async function createProject(
       "Added to project",
       `You were added to the project "${row.name}".`,
       "project",
-      row.id
+      row.id,
     );
   }
   await notifyAdmins(
@@ -352,29 +409,40 @@ export async function createProject(
     "Project created",
     `Project "${row.name}" was created.`,
     "project",
-    row.id
+    row.id,
   );
   return mapProject(row, input.memberIds);
 }
 
 export async function updateProject(
   id: string,
-  patch: Partial<{ description: string; status: string; startDate: string; deadline: string }>
+  patch: Partial<{
+    description: string;
+    status: string;
+    startDate: string;
+    deadline: string;
+  }>,
 ) {
-  const existing = await queryOne<any>(`SELECT * FROM projects WHERE id = $1`, [id]);
+  const existing = await queryOne<any>(`SELECT * FROM projects WHERE id = $1`, [
+    id,
+  ]);
   if (!existing) return null;
   const row = await queryOne<any>(
     `UPDATE projects SET description=$1, status=$2, start_date=$3, deadline=$4 WHERE id=$5 RETURNING *`,
     [
       patch.description ?? existing.description,
       patch.status ?? existing.status,
-      patch.startDate !== undefined ? patch.startDate || null : existing.start_date,
+      patch.startDate !== undefined
+        ? patch.startDate || null
+        : existing.start_date,
       patch.deadline !== undefined ? patch.deadline || null : existing.deadline,
       id,
-    ]
+    ],
   );
   if (patch.status && patch.status !== existing.status) {
-    await logActivity(`Project "${existing.name}" status changed to ${patch.status}.`);
+    await logActivity(
+      `Project "${existing.name}" status changed to ${patch.status}.`,
+    );
   } else {
     await logActivity(`Project "${existing.name}" was updated.`);
   }
@@ -382,16 +450,21 @@ export async function updateProject(
 }
 
 export async function deleteProject(id: string, actorId: string) {
-  const project = await queryOne<any>(`SELECT * FROM projects WHERE id = $1`, [id]);
+  const project = await queryOne<any>(`SELECT * FROM projects WHERE id = $1`, [
+    id,
+  ]);
   if (!project) return;
   const memberIds = await getProjectMemberIds(id);
   const assignees = await query<{ assignee_id: string }>(
     `SELECT DISTINCT assignee_id FROM tasks WHERE project_id = $1 AND assignee_id IS NOT NULL`,
-    [id]
+    [id],
   );
   await query(`DELETE FROM projects WHERE id = $1`, [id]); // cascades tasks
   await logActivity(`Project "${project.name}" was deleted.`);
-  const notified = new Set([...memberIds, ...assignees.map((a) => a.assignee_id)]);
+  const notified = new Set([
+    ...memberIds,
+    ...assignees.map((a) => a.assignee_id),
+  ]);
   for (const employeeId of notified) {
     await notify(
       employeeId,
@@ -399,18 +472,23 @@ export async function deleteProject(id: string, actorId: string) {
       "Project deleted",
       `The project "${project.name}" was deleted and its tasks were removed.`,
       "project",
-      null
+      null,
     );
   }
 }
 
 export async function addProjectMember(projectId: string, employeeId: string) {
-  const project = await queryOne<any>(`SELECT * FROM projects WHERE id = $1`, [projectId]);
-  const employee = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [employeeId]);
+  const project = await queryOne<any>(`SELECT * FROM projects WHERE id = $1`, [
+    projectId,
+  ]);
+  const employee = await queryOne<any>(
+    `SELECT * FROM employees WHERE id = $1`,
+    [employeeId],
+  );
   if (!project || !employee) return;
   await query(
     `INSERT INTO project_members (project_id, employee_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
-    [projectId, employeeId]
+    [projectId, employeeId],
   );
   await logActivity(`${employee.name} was added to project "${project.name}".`);
   await notify(
@@ -419,26 +497,36 @@ export async function addProjectMember(projectId: string, employeeId: string) {
     "Added to project",
     `You were added to the project "${project.name}".`,
     "project",
-    projectId
+    projectId,
   );
 }
 
-export async function removeProjectMember(projectId: string, employeeId: string) {
-  const project = await queryOne<any>(`SELECT * FROM projects WHERE id = $1`, [projectId]);
-  const employee = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [employeeId]);
-  if (!project || !employee) return;
-  await query(`DELETE FROM project_members WHERE project_id = $1 AND employee_id = $2`, [
+export async function removeProjectMember(
+  projectId: string,
+  employeeId: string,
+) {
+  const project = await queryOne<any>(`SELECT * FROM projects WHERE id = $1`, [
     projectId,
-    employeeId,
   ]);
-  await logActivity(`${employee.name} was removed from project "${project.name}".`);
+  const employee = await queryOne<any>(
+    `SELECT * FROM employees WHERE id = $1`,
+    [employeeId],
+  );
+  if (!project || !employee) return;
+  await query(
+    `DELETE FROM project_members WHERE project_id = $1 AND employee_id = $2`,
+    [projectId, employeeId],
+  );
+  await logActivity(
+    `${employee.name} was removed from project "${project.name}".`,
+  );
   await notify(
     employeeId,
     "project-membership",
     "Removed from project",
     `You were removed from the project "${project.name}".`,
     "project",
-    projectId
+    projectId,
   );
 }
 
@@ -446,20 +534,28 @@ export async function removeProjectMember(projectId: string, employeeId: string)
 // no longer fully completed -> back to In Progress. Projects with no tasks
 // are left alone so a manually chosen status isn't overridden.
 async function syncProjectStatus(projectId: string) {
-  const project = await queryOne<any>(`SELECT * FROM projects WHERE id = $1`, [projectId]);
-  if (!project) return;
-  const tasks = await query<{ status: string }>(`SELECT status FROM tasks WHERE project_id = $1`, [
+  const project = await queryOne<any>(`SELECT * FROM projects WHERE id = $1`, [
     projectId,
   ]);
+  if (!project) return;
+  const tasks = await query<{ status: string }>(
+    `SELECT status FROM tasks WHERE project_id = $1`,
+    [projectId],
+  );
   if (tasks.length === 0) return;
 
   const progress = computeProjectProgress(tasks as any);
   let nextStatus = project.status;
-  if (progress === 100 && project.status !== "Completed") nextStatus = "Completed";
-  else if (progress < 100 && project.status === "Completed") nextStatus = "In Progress";
+  if (progress === 100 && project.status !== "Completed")
+    nextStatus = "Completed";
+  else if (progress < 100 && project.status === "Completed")
+    nextStatus = "In Progress";
 
   if (nextStatus !== project.status) {
-    await query(`UPDATE projects SET status = $1 WHERE id = $2`, [nextStatus, projectId]);
+    await query(`UPDATE projects SET status = $1 WHERE id = $2`, [
+      nextStatus,
+      projectId,
+    ]);
   }
 }
 
@@ -486,7 +582,7 @@ export async function createTask(
     progress: number;
     dependsOnTaskId: string | null;
   },
-  actorId: string
+  actorId: string,
 ) {
   const progress = input.status === "Completed" ? 100 : input.progress;
   const row = await queryOne<any>(
@@ -504,20 +600,23 @@ export async function createTask(
       input.deadline || null,
       progress,
       input.dependsOnTaskId,
-    ]
+    ],
   );
   await logActivity(`Task "${row.name}" was created.`);
   await syncProjectStatus(input.projectId);
 
   if (input.assigneeId) {
-    const assignee = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [input.assigneeId]);
+    const assignee = await queryOne<any>(
+      `SELECT * FROM employees WHERE id = $1`,
+      [input.assigneeId],
+    );
     await notify(
       input.assigneeId,
       "task-assigned",
       "New task assigned",
       `You have been assigned "${row.name}".`,
       "task",
-      row.id
+      row.id,
     );
     await notifyAdmins(
       actorId,
@@ -525,7 +624,7 @@ export async function createTask(
       "Task assigned",
       `"${row.name}" was assigned to ${assignee?.name ?? "an employee"}.`,
       "task",
-      row.id
+      row.id,
     );
   }
   return mapTask(row);
@@ -543,14 +642,20 @@ export async function updateTask(
     progress: number;
     dependsOnTaskId: string | null;
   }>,
-  actorId: string
+  actorId: string,
 ) {
-  const existing = await queryOne<any>(`SELECT * FROM tasks WHERE id = $1`, [id]);
+  const existing = await queryOne<any>(`SELECT * FROM tasks WHERE id = $1`, [
+    id,
+  ]);
   if (!existing) return null;
 
   const nextStatus = patch.status ?? existing.status;
   const nextProgress =
-    patch.progress !== undefined ? patch.progress : nextStatus === "Completed" ? 100 : existing.progress;
+    patch.progress !== undefined
+      ? patch.progress
+      : nextStatus === "Completed"
+        ? 100
+        : existing.progress;
 
   const row = await queryOne<any>(
     `UPDATE tasks SET
@@ -565,37 +670,48 @@ export async function updateTask(
       patch.priority ?? existing.priority,
       patch.durationDays ?? existing.duration_days,
       nextProgress,
-      patch.dependsOnTaskId !== undefined ? patch.dependsOnTaskId : existing.depends_on_task_id,
+      patch.dependsOnTaskId !== undefined
+        ? patch.dependsOnTaskId
+        : existing.depends_on_task_id,
       id,
-    ]
+    ],
   );
 
   await syncProjectStatus(existing.project_id);
 
-  if (patch.assigneeId !== undefined && patch.assigneeId !== existing.assignee_id) {
+  if (
+    patch.assigneeId !== undefined &&
+    patch.assigneeId !== existing.assignee_id
+  ) {
     if (existing.assignee_id) {
-      const prevAssignee = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [
-        existing.assignee_id,
-      ]);
+      const prevAssignee = await queryOne<any>(
+        `SELECT * FROM employees WHERE id = $1`,
+        [existing.assignee_id],
+      );
       await notify(
         existing.assignee_id,
         "task-unassigned",
         "Task unassigned",
         `"${existing.name}" is no longer assigned to you.`,
         "task",
-        id
+        id,
       );
-      await logActivity(`Task "${existing.name}" was unassigned from ${prevAssignee?.name ?? "an employee"}.`);
+      await logActivity(
+        `Task "${existing.name}" was unassigned from ${prevAssignee?.name ?? "an employee"}.`,
+      );
     }
     if (patch.assigneeId) {
-      const newAssignee = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [patch.assigneeId]);
+      const newAssignee = await queryOne<any>(
+        `SELECT * FROM employees WHERE id = $1`,
+        [patch.assigneeId],
+      );
       await notify(
         patch.assigneeId,
         "task-assigned",
         "New task assigned",
         `You have been assigned "${existing.name}".`,
         "task",
-        id
+        id,
       );
       await notifyAdmins(
         actorId,
@@ -603,14 +719,18 @@ export async function updateTask(
         "Task assigned",
         `"${existing.name}" was assigned to ${newAssignee?.name ?? "an employee"}.`,
         "task",
-        id
+        id,
       );
-      await logActivity(`Task "${existing.name}" was assigned to ${newAssignee?.name ?? "an employee"}.`);
+      await logActivity(
+        `Task "${existing.name}" was assigned to ${newAssignee?.name ?? "an employee"}.`,
+      );
     }
   }
 
   if (patch.status && patch.status !== existing.status) {
-    await logActivity(`Task "${existing.name}" status changed to ${patch.status}.`);
+    await logActivity(
+      `Task "${existing.name}" status changed to ${patch.status}.`,
+    );
     if (patch.status === "Completed") {
       await notifyAdmins(
         actorId,
@@ -618,7 +738,7 @@ export async function updateTask(
         "Task completed",
         `"${existing.name}" was marked Completed.`,
         "task",
-        id
+        id,
       );
       if (existing.assignee_id && existing.assignee_id !== actorId) {
         await notify(
@@ -627,7 +747,7 @@ export async function updateTask(
           "Task completed",
           `"${existing.name}" was marked Completed.`,
           "task",
-          id
+          id,
         );
       }
     }
@@ -651,7 +771,7 @@ export async function deleteTask(id: string, actorId: string) {
       "Task removed",
       `"${task.name}" was deleted and is no longer assigned to you.`,
       "task",
-      null
+      null,
     );
   }
 }
@@ -663,7 +783,7 @@ export async function deleteTask(id: string, actorId: string) {
 async function getMeetingAttendeeIds(meetingId: string) {
   const rows = await query<{ employee_id: string }>(
     `SELECT employee_id FROM meeting_attendees WHERE meeting_id = $1`,
-    [meetingId]
+    [meetingId],
   );
   return rows.map((r) => r.employee_id);
 }
@@ -688,7 +808,7 @@ export async function createMeeting(
     projectId: string | null;
     details: string;
   },
-  actorId: string
+  actorId: string,
 ) {
   const row = await queryOne<any>(
     `INSERT INTO meetings (title, date, time, platform, meeting_link, project_id, details)
@@ -701,30 +821,24 @@ export async function createMeeting(
       input.meetingLink || null,
       input.projectId,
       input.details,
-    ]
+    ],
   );
   for (const employeeId of input.attendeeIds) {
     await query(
       `INSERT INTO meeting_attendees (meeting_id, employee_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
-      [row.id, employeeId]
+      [row.id, employeeId],
     );
   }
   await logActivity(`Meeting "${row.title}" was scheduled.`);
   const platformText = input.platform ? ` via ${input.platform}` : "";
-  const allActiveEmployees = await listEmployees();
-  const notifyList = allActiveEmployees.filter((e) => e.status === "Active" && e.id !== actorId);
-
-  for (const emp of notifyList) {
-    const isAttendee = input.attendeeIds.includes(emp.id);
+  for (const employeeId of input.attendeeIds.filter((a) => a !== actorId)) {
     await notify(
-      emp.id,
+      employeeId,
       "meeting",
-      isAttendee ? "Meeting invitation" : "New meeting scheduled",
-      isAttendee
-        ? `You were invited to "${row.title}" on ${input.date} at ${input.time}${platformText}.`
-        : `A new team meeting "${row.title}" was scheduled for ${input.date} at ${input.time}${platformText}.`,
+      "Meeting scheduled",
+      `You were invited to "${row.title}" on ${input.date} at ${input.time}${platformText}.`,
       "meeting",
-      row.id
+      row.id,
     );
   }
   return mapMeeting(row, input.attendeeIds);
@@ -742,9 +856,11 @@ export async function updateMeeting(
     projectId: string | null;
     details: string;
   }>,
-  actorId: string
+  actorId: string,
 ) {
-  const existing = await queryOne<any>(`SELECT * FROM meetings WHERE id = $1`, [id]);
+  const existing = await queryOne<any>(`SELECT * FROM meetings WHERE id = $1`, [
+    id,
+  ]);
   if (!existing) return null;
   const row = await queryOne<any>(
     `UPDATE meetings SET
@@ -758,23 +874,27 @@ export async function updateMeeting(
       patch.date ?? existing.date,
       patch.time ?? existing.time,
       patch.platform !== undefined ? patch.platform : null,
-      patch.meetingLink !== undefined ? patch.meetingLink || null : existing.meeting_link,
+      patch.meetingLink !== undefined
+        ? patch.meetingLink || null
+        : existing.meeting_link,
       patch.projectId !== undefined ? patch.projectId : existing.project_id,
       patch.details ?? existing.details,
       id,
-    ]
+    ],
   );
 
   const existingAttendeeIds = await getMeetingAttendeeIds(id);
   if (patch.attendeeIds) {
     await query(`DELETE FROM meeting_attendees WHERE meeting_id = $1`, [id]);
     for (const employeeId of patch.attendeeIds) {
-      await query(`INSERT INTO meeting_attendees (meeting_id, employee_id) VALUES ($1,$2)`, [
-        id,
-        employeeId,
-      ]);
+      await query(
+        `INSERT INTO meeting_attendees (meeting_id, employee_id) VALUES ($1,$2)`,
+        [id, employeeId],
+      );
     }
-    const added = patch.attendeeIds.filter((a) => !existingAttendeeIds.includes(a) && a !== actorId);
+    const added = patch.attendeeIds.filter(
+      (a) => !existingAttendeeIds.includes(a) && a !== actorId,
+    );
     for (const employeeId of added) {
       await notify(
         employeeId,
@@ -782,7 +902,7 @@ export async function updateMeeting(
         "Meeting scheduled",
         `You were invited to "${row.title}".`,
         "meeting",
-        id
+        id,
       );
     }
   }
@@ -792,13 +912,22 @@ export async function updateMeeting(
 }
 
 export async function deleteMeeting(id: string, actorId: string) {
-  const meeting = await queryOne<any>(`SELECT * FROM meetings WHERE id = $1`, [id]);
+  const meeting = await queryOne<any>(`SELECT * FROM meetings WHERE id = $1`, [
+    id,
+  ]);
   if (!meeting) return;
   const attendeeIds = await getMeetingAttendeeIds(id);
   await query(`DELETE FROM meetings WHERE id = $1`, [id]);
   await logActivity(`Meeting "${meeting.title}" was removed.`);
   for (const employeeId of attendeeIds.filter((a) => a !== actorId)) {
-    await notify(employeeId, "meeting", "Meeting cancelled", `"${meeting.title}" was cancelled.`, "meeting", null);
+    await notify(
+      employeeId,
+      "meeting",
+      "Meeting cancelled",
+      `"${meeting.title}" was cancelled.`,
+      "meeting",
+      null,
+    );
   }
 }
 
@@ -808,15 +937,15 @@ export async function deleteMeeting(id: string, actorId: string) {
 
 export async function listDocuments() {
   const rows = await query<any>(
-    `SELECT id, name, description, project_id, file_name, file_size, mime_type, created_at, updated_at
-     FROM documents
-     ORDER BY updated_at DESC`
+    `SELECT * FROM documents ORDER BY updated_at DESC`,
   );
   return rows.map(mapDocument);
 }
 
 export async function findDocumentById(id: string) {
-  const row = await queryOne<any>(`SELECT * FROM documents WHERE id = $1`, [id]);
+  const row = await queryOne<any>(`SELECT * FROM documents WHERE id = $1`, [
+    id,
+  ]);
   return row ? mapDocument(row) : null;
 }
 
@@ -840,23 +969,9 @@ export async function createDocument(input: {
       input.fileData || null,
       input.fileSize || null,
       input.mimeType || null,
-    ]
+    ],
   );
   await logActivity(`Document "${row.name}" was added.`);
-
-  const project = await queryOne<any>(`SELECT * FROM projects WHERE id = $1`, [input.projectId]);
-  const activeEmployees = await listEmployees();
-  for (const emp of activeEmployees.filter((e) => e.status === "Active")) {
-    await notify(
-      emp.id,
-      "document",
-      "New document uploaded",
-      `A new document "${row.name}" was uploaded to project "${project?.name ?? "a project"}".`,
-      "document",
-      row.id
-    );
-  }
-
   return mapDocument(row);
 }
 
@@ -870,9 +985,12 @@ export async function updateDocument(
     fileData?: string;
     fileSize?: number;
     mimeType?: string;
-  }>
+  }>,
 ) {
-  const existing = await queryOne<any>(`SELECT * FROM documents WHERE id = $1`, [id]);
+  const existing = await queryOne<any>(
+    `SELECT * FROM documents WHERE id = $1`,
+    [id],
+  );
   if (!existing) return null;
   const row = await queryOne<any>(
     `UPDATE documents SET
@@ -892,14 +1010,16 @@ export async function updateDocument(
       patch.fileSize !== undefined ? patch.fileSize : null,
       patch.mimeType !== undefined ? patch.mimeType : null,
       id,
-    ]
+    ],
   );
   await logActivity(`Document "${row.name}" was updated.`);
   return mapDocument(row);
 }
 
 export async function deleteDocument(id: string) {
-  const doc = await queryOne<any>(`SELECT * FROM documents WHERE id = $1`, [id]);
+  const doc = await queryOne<any>(`SELECT * FROM documents WHERE id = $1`, [
+    id,
+  ]);
   if (!doc) return;
   await query(`DELETE FROM documents WHERE id = $1`, [id]);
   await logActivity(`Document "${doc.name}" was removed.`);
@@ -910,89 +1030,10 @@ export async function deleteDocument(id: string) {
 // ---------------------------------------------------------------------
 
 export async function listDailyReports() {
-  const rows = await query<any>(`SELECT * FROM daily_reports ORDER BY submitted_at DESC`);
-  return rows.map(mapDailyReport);
-}
-
-export async function findDailyReportById(id: string) {
-  const row = await queryOne<any>(`SELECT * FROM daily_reports WHERE id = $1`, [id]);
-  return row ? mapDailyReport(row) : null;
-}
-
-export async function updateDailyReport(
-  id: string,
-  patch: Partial<{
-    date: string;
-    workedOn: string;
-    completed: string;
-    remaining: string;
-    blockers: string;
-  }>
-) {
-  const existing = await queryOne<any>(`SELECT * FROM daily_reports WHERE id = $1`, [id]);
-  if (!existing) return null;
-
-  const row = await queryOne<any>(
-    `UPDATE daily_reports SET
-       date = $1,
-       worked_on = $2,
-       completed = $3,
-       remaining = $4,
-       blockers = $5
-     WHERE id = $6 RETURNING *`,
-    [
-      patch.date ?? existing.date,
-      patch.workedOn ?? existing.worked_on,
-      patch.completed ?? existing.completed,
-      patch.remaining ?? existing.remaining,
-      patch.blockers ?? existing.blockers,
-      id,
-    ]
-  );
-
-  const employee = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [existing.employee_id]);
-  await logActivity(`${employee?.name ?? "An employee"} updated a daily report.`);
-  return mapDailyReport(row);
-}
-
-export async function listDailyReportComments(reportId: string) {
   const rows = await query<any>(
-    `SELECT * FROM daily_report_comments WHERE report_id = $1 ORDER BY created_at ASC`,
-    [reportId]
+    `SELECT * FROM daily_reports ORDER BY submitted_at DESC`,
   );
-  return rows.map(mapDailyReportComment);
-}
-
-export async function createDailyReportComment(input: {
-  reportId: string;
-  authorId: string;
-  body: string;
-}) {
-  const report = await queryOne<any>(`SELECT * FROM daily_reports WHERE id = $1`, [input.reportId]);
-  if (!report) return null;
-
-  const row = await queryOne<any>(
-    `INSERT INTO daily_report_comments (report_id, author_id, body)
-     VALUES ($1, $2, $3) RETURNING *`,
-    [input.reportId, input.authorId, input.body.trim()]
-  );
-
-  const author = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [input.authorId]);
-  const reportOwnerId = report.employee_id;
-
-  if (reportOwnerId !== input.authorId) {
-    await notify(
-      reportOwnerId,
-      "daily-report",
-      "New comment on your report",
-      `${author?.name ?? "A teammate"} commented on your daily report.`,
-      "report",
-      input.reportId
-    );
-  }
-
-  await logActivity(`${author?.name ?? "Someone"} commented on a daily report.`);
-  return mapDailyReportComment(row);
+  return rows.map(mapDailyReport);
 }
 
 export async function createDailyReport(input: {
@@ -1006,17 +1047,29 @@ export async function createDailyReport(input: {
   const row = await queryOne<any>(
     `INSERT INTO daily_reports (employee_id, date, worked_on, completed, remaining, blockers)
      VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-    [input.employeeId, input.date, input.workedOn, input.completed, input.remaining, input.blockers]
+    [
+      input.employeeId,
+      input.date,
+      input.workedOn,
+      input.completed,
+      input.remaining,
+      input.blockers,
+    ],
   );
-  const employee = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [input.employeeId]);
-  await logActivity(`${employee?.name ?? "An employee"} submitted a daily report.`);
+  const employee = await queryOne<any>(
+    `SELECT * FROM employees WHERE id = $1`,
+    [input.employeeId],
+  );
+  await logActivity(
+    `${employee?.name ?? "An employee"} submitted a daily report.`,
+  );
   await notify(
     input.employeeId,
     "daily-report",
     "Daily report submitted",
     "Your daily report for today was submitted successfully. Well done.",
     "report",
-    row.id
+    row.id,
   );
   await notifyAdmins(
     input.employeeId,
@@ -1024,7 +1077,7 @@ export async function createDailyReport(input: {
     "Daily report submitted",
     `${employee?.name ?? "An employee"} submitted today's daily report.`,
     "report",
-    row.id
+    row.id,
   );
   return mapDailyReport(row);
 }
@@ -1037,9 +1090,15 @@ export async function findDailyReportById(id: string) {
 // not just by hiding the Edit button in the UI.
 export async function updateDailyReport(
   id: string,
-  patch: Partial<{ date: string; workedOn: string; completed: string; remaining: string; blockers: string }>,
+  patch: Partial<{
+    date: string;
+    workedOn: string;
+    completed: string;
+    remaining: string;
+    blockers: string;
+  }>,
   actorId: string,
-  isAdmin: boolean
+  isAdmin: boolean,
 ) {
   const existing = await findDailyReportById(id);
   if (!existing) return { ok: false as const, error: "Report not found." };
@@ -1058,7 +1117,7 @@ export async function updateDailyReport(
       patch.remaining ?? existing.remaining,
       patch.blockers ?? existing.blockers,
       id,
-    ]
+    ],
   );
   return { ok: true as const, report: mapDailyReport(row) };
 }
@@ -1068,26 +1127,35 @@ export async function updateDailyReport(
 // ---------------------------------------------------------------------
 
 export async function listReportComments() {
-  const rows = await query<any>(`SELECT * FROM daily_report_comments ORDER BY created_at ASC`);
+  const rows = await query<any>(
+    `SELECT * FROM daily_report_comments ORDER BY created_at ASC`,
+  );
   return rows.map(mapReportComment);
 }
 
-export async function createReportComment(reportId: string, employeeId: string, body: string) {
+export async function createReportComment(
+  reportId: string,
+  employeeId: string,
+  body: string,
+) {
   const row = await queryOne<any>(
     `INSERT INTO daily_report_comments (report_id, employee_id, body) VALUES ($1,$2,$3) RETURNING *`,
-    [reportId, employeeId, body]
+    [reportId, employeeId, body],
   );
 
   const report = await findDailyReportById(reportId);
   if (report && report.employee_id !== employeeId) {
-    const commenter = await queryOne<any>(`SELECT * FROM employees WHERE id = $1`, [employeeId]);
+    const commenter = await queryOne<any>(
+      `SELECT * FROM employees WHERE id = $1`,
+      [employeeId],
+    );
     await notify(
       report.employee_id,
       "daily-report",
       "New comment on your daily report",
       `${commenter?.name ?? "Someone"} commented on your report for ${report.date}.`,
       "report",
-      reportId
+      reportId,
     );
   }
 
@@ -1095,11 +1163,21 @@ export async function createReportComment(reportId: string, employeeId: string, 
 }
 
 // Only the comment's own author or an Admin may delete it.
-export async function deleteReportComment(id: string, actorId: string, isAdmin: boolean) {
-  const existing = await queryOne<any>(`SELECT * FROM daily_report_comments WHERE id = $1`, [id]);
+export async function deleteReportComment(
+  id: string,
+  actorId: string,
+  isAdmin: boolean,
+) {
+  const existing = await queryOne<any>(
+    `SELECT * FROM daily_report_comments WHERE id = $1`,
+    [id],
+  );
   if (!existing) return { ok: false as const, error: "Comment not found." };
   if (existing.employee_id !== actorId && !isAdmin) {
-    return { ok: false as const, error: "You can only delete your own comment." };
+    return {
+      ok: false as const,
+      error: "You can only delete your own comment.",
+    };
   }
   await query(`DELETE FROM daily_report_comments WHERE id = $1`, [id]);
   return { ok: true as const };
@@ -1112,20 +1190,27 @@ export async function deleteReportComment(id: string, actorId: string, isAdmin: 
 export async function listNotificationsForUser(userId: string) {
   const rows = await query<any>(
     `SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 200`,
-    [userId]
+    [userId],
   );
   return rows.map(mapNotification);
 }
 
 export async function markNotificationRead(id: string, userId: string) {
-  await query(`UPDATE notifications SET read = TRUE WHERE id = $1 AND user_id = $2`, [id, userId]);
+  await query(
+    `UPDATE notifications SET read = TRUE WHERE id = $1 AND user_id = $2`,
+    [id, userId],
+  );
 }
 
 export async function markAllNotificationsRead(userId: string) {
-  await query(`UPDATE notifications SET read = TRUE WHERE user_id = $1`, [userId]);
+  await query(`UPDATE notifications SET read = TRUE WHERE user_id = $1`, [
+    userId,
+  ]);
 }
 
 export async function listActivity() {
-  const rows = await query<any>(`SELECT * FROM activity ORDER BY created_at DESC LIMIT 60`);
+  const rows = await query<any>(
+    `SELECT * FROM activity ORDER BY created_at DESC LIMIT 60`,
+  );
   return rows.map(mapActivity);
 }

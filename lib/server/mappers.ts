@@ -26,7 +26,10 @@ export function mapEmployee(row: any) {
   const fallbackParts = fullName ? fullName.split(/\s+/).filter(Boolean) : [];
   const mappedFirst = firstName || fallbackParts[0] || "";
   const mappedLast = lastName || fallbackParts.slice(1).join(" ");
-  const displayName = [mappedFirst, mappedLast].filter(Boolean).join(" ").trim() || fullName || "";
+  const displayName =
+    [mappedFirst, mappedLast].filter(Boolean).join(" ").trim() ||
+    fullName ||
+    "";
 
   return {
     id: row.id,
@@ -94,7 +97,10 @@ export function mapDocument(row: any) {
     description: row.description ?? "",
     projectId: row.project_id,
     fileName: row.file_name ?? undefined,
-    fileSize: row.file_size !== null && row.file_size !== undefined ? Number(row.file_size) : undefined,
+    fileSize:
+      row.file_size !== null && row.file_size !== undefined
+        ? Number(row.file_size)
+        : undefined,
     mimeType: row.mime_type ?? undefined,
     fileData: row.file_data ?? undefined,
     createdAt: toIsoTimestamp(row.created_at),
@@ -115,21 +121,12 @@ export function mapDailyReport(row: any) {
   };
 }
 
-<<<<<<< HEAD
 export function mapReportComment(row: any) {
   return {
     id: row.id,
     reportId: row.report_id,
     employeeId: row.employee_id,
     body: row.body,
-=======
-export function mapDailyReportComment(row: any) {
-  return {
-    id: row.id,
-    reportId: row.report_id,
-    authorId: row.author_id,
-    body: row.body ?? "",
->>>>>>> 4b5b146cb59da56315b0b76f846056cfb5f4e25c
     createdAt: toIsoTimestamp(row.created_at),
   };
 }

@@ -41,7 +41,7 @@ export function ScheduleView() {
     return (
       <EmptyState
         title="No employees added"
-        description="Add team members from the Employees page, then assign tasks or schedule meetings to see them here."
+        description="Add team members from the Partners page, then assign tasks or schedule meetings to see them here."
       />
     );
   }

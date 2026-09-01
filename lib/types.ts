@@ -1,4 +1,9 @@
-export type TaskStatus = "To Do" | "In Progress" | "Review" | "Completed" | "Blocked";
+export type TaskStatus =
+  | "To Do"
+  | "In Progress"
+  | "Review"
+  | "Completed"
+  | "Blocked";
 
 export type TaskPriority = "Low" | "Medium" | "High" | "Urgent";
 
@@ -62,17 +67,10 @@ export interface DailyReport {
   submittedAt: string; // ISO timestamp
 }
 
-<<<<<<< HEAD
 export interface ReportComment {
   id: string;
   reportId: string;
   employeeId: string;
-=======
-export interface DailyReportComment {
-  id: string;
-  reportId: string;
-  authorId: string;
->>>>>>> 4b5b146cb59da56315b0b76f846056cfb5f4e25c
   body: string;
   createdAt: string; // ISO timestamp
 }

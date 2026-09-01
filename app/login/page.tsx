@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { Field, PrimaryButton, SecondaryButton } from "@/components/ui/FormControls";
 import { Role } from "@/lib/types";
@@ -117,7 +118,7 @@ export default function LoginPage() {
             ) : (
               <p className="mb-4 text-sm text-ink-muted">
                 Create your Ogigrid account. Choose whether you're joining as an Administrator or
-                an Employee.
+                a Partner.
               </p>
             )}
             <form onSubmit={handleSignup} className="space-y-4">
@@ -163,7 +164,7 @@ export default function LoginPage() {
                     value={signupForm.role}
                     onChange={(e) => setSignupForm({ ...signupForm, role: e.target.value as Role })}
                   >
-                    <option value="Employee">Employee</option>
+                    <option value="Employee">Partner</option>
                     <option value="Admin">Administrator</option>
                   </select>
                 </Field>
@@ -202,15 +203,12 @@ export default function LoginPage() {
                   required
                 />
               </Field>
-              <div className="flex justify-end">
-                <a
-                  href="/forgot-password"
-                  className="text-xs font-medium text-brand-600 hover:underline"
-                >
-                  Forgot password?
-                </a>
-              </div>
               {error && <p className="text-sm text-status-notsubmitted">{error}</p>}
+              <div className="text-right">
+                <Link href="/forgot-password" className="text-xs text-brand-600 hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
               <PrimaryButton type="submit" className="w-full" disabled={submitting}>
                 Log In
               </PrimaryButton>
