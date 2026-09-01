@@ -3,14 +3,29 @@
 import { ReactNode, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { useIdleLogout } from "@/lib/useIdleLogout";
 
 const PUBLIC_PATHS = ["/login", "/forgot-password", "/reset-password"];
 
 export function RouteGuard({ children }: { children: ReactNode }) {
-  const { currentUser, hydrated } = useAuth();
+  const { currentUser, hydrated, refresh } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const isPublic = PUBLIC_PATHS.includes(pathname ?? "");
+
+  // Global idle timeout — must live here so page navigation does not reset the timer.
+  useIdleLogout();
+
+  // If the browser restores a cached page (back button), re-check the session.
+  useEffect(() => {
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) {
+        void refresh();
+      }
+    }
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, [refresh]);
 
   useEffect(() => {
     if (!hydrated) return;

@@ -3,7 +3,6 @@
 import { ReactNode, useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
-import { useIdleLogout } from "@/lib/useIdleLogout";
 
 interface AppShellProps {
   title: string;
@@ -13,7 +12,6 @@ interface AppShellProps {
 
 export function AppShell({ title, subtitle, children }: AppShellProps) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  useIdleLogout();
 
   return (
     <div className="flex h-screen bg-canvas overflow-hidden">
