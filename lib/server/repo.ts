@@ -107,7 +107,7 @@ export async function createEmployee(input: {
       input.departments,
       input.status,
       !!input.isPrimaryAdmin,
-      (input.jobTitle ?? "").trim(),
+      (input.jobTitle ?? "").trim().toUpperCase(),
     ]
   );
   return mapEmployee(row);
@@ -155,7 +155,7 @@ export async function updateEmployee(
      role,
      patch.departments ?? existing.departments,
      status,
-     patch.jobTitle !== undefined ? patch.jobTitle.trim() : (existing.job_title ?? ""),
+     patch.jobTitle !== undefined ? patch.jobTitle.trim().toUpperCase() : (existing.job_title ?? ""),
      id,
     ]
   );

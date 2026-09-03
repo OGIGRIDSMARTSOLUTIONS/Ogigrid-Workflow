@@ -9,6 +9,7 @@ import { EmptyState, Field, PrimaryButton, SecondaryButton, DangerLink } from "@
 import { useApp, EmployeeRemovalStrategy } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
+import { displayJobTitle } from "@/lib/data";
 import { Employee, EmployeeStatus, Role } from "@/lib/types";
 
 const emptyForm = {
@@ -26,13 +27,6 @@ function roleBadgeClass(employee: Employee) {
     return "bg-brand-100 text-brand-700";
   }
   return "bg-slate-100 text-slate-700";
-}
-
-function displayJobTitle(employee: Employee) {
-  if (employee.jobTitle?.trim()) return employee.jobTitle.trim();
-  if (employee.isPrimaryAdmin) return "Lead";
-  if (employee.role === "Admin") return "Administrator";
-  return "Partner";
 }
 
 export default function EmployeesPage() {

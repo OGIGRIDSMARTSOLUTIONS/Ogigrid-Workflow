@@ -1,4 +1,14 @@
-import { TaskPriority, TaskStatus } from "./types";
+import { Employee, TaskPriority, TaskStatus } from "./types";
+
+export function displayJobTitle(
+  employee: Pick<Employee, "jobTitle" | "role" | "isPrimaryAdmin">,
+): string {
+  const custom = employee.jobTitle?.trim();
+  if (custom) return custom.toUpperCase();
+  if (employee.isPrimaryAdmin) return "LEAD";
+  if (employee.role === "Admin") return "ADMINISTRATOR";
+  return "PARTNER";
+}
 
 // Starter department suggestions only — the real team can add any others.
 export const departmentSuggestions = ["Software", "Marketing", "Design", "Operations"];

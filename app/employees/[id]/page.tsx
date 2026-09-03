@@ -8,7 +8,7 @@ import { StatusBadge, PriorityBadge, DepartmentBadge } from "@/components/ui/Sta
 import { EmptyState, SecondaryButton } from "@/components/ui/FormControls";
 import { useApp } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
-import { formatDate } from "@/lib/data";
+import { displayJobTitle, formatDate } from "@/lib/data";
 
 function LockIcon({ className = "h-3.5 w-3.5 text-ink-faint" }: { className?: string }) {
   return (
@@ -241,18 +241,14 @@ export default function EmployeeProfilePage() {
                 <div>
                   <p className="font-semibold text-ink">{employee.name}</p>
                   <p className="text-xs text-brand-700 font-medium mt-0.5">
-                    {employee.jobTitle?.trim() ||
-                      (employee.isPrimaryAdmin ? "Lead" : employee.role === "Admin" ? "Administrator" : "Partner")}
+                    {displayJobTitle(employee)}
                   </p>
                 </div>
               </div>
 
               <InfoRow label="Work Email">{employee.email || "—"}</InfoRow>
 
-              <InfoRow label="Role">
-                {employee.jobTitle?.trim() ||
-                  (employee.isPrimaryAdmin ? "Lead" : employee.role === "Admin" ? "Administrator" : "Partner")}
-              </InfoRow>
+              <InfoRow label="Role">{displayJobTitle(employee)}</InfoRow>
 
               <InfoRow label="Account Status">
                 <span
@@ -290,8 +286,7 @@ export default function EmployeeProfilePage() {
                 <div>
                   <h3 className="text-base font-semibold text-ink">{employee.name}</h3>
                   <p className="text-xs text-brand-700 font-medium mt-0.5">
-                    {employee.jobTitle?.trim() ||
-                      (employee.isPrimaryAdmin ? "Lead" : employee.role === "Admin" ? "Administrator" : "Partner")}
+                    {displayJobTitle(employee)}
                   </p>
                 </div>
               </div>
@@ -301,10 +296,7 @@ export default function EmployeeProfilePage() {
                   <span className="text-ink font-medium">{employee.email || "—"}</span>
                 </InfoRow>
 
-                <InfoRow label="Role">
-                  {employee.jobTitle?.trim() ||
-                    (employee.isPrimaryAdmin ? "Lead" : employee.role === "Admin" ? "Administrator" : "Partner")}
-                </InfoRow>
+                <InfoRow label="Role">{displayJobTitle(employee)}</InfoRow>
               </div>
 
               <div className="pt-2 border-t border-border flex items-center justify-between text-xs text-ink-faint">
