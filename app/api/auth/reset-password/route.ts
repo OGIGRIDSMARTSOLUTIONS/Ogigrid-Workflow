@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { consumePasswordResetToken } from "@/lib/server/repo";
+import { validatePassword } from "@/lib/passwordValidation";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -9,8 +10,9 @@ export async function POST(request: Request) {
   if (!token || typeof token !== "string") {
     return NextResponse.json({ error: "Missing or invalid reset token." }, { status: 400 });
   }
-  if (!newPassword || typeof newPassword !== "string" || newPassword.length < 6) {
-    return NextResponse.json({ error: "New password must be at least 6 characters." }, { status: 400 });
+  const passwordCheck = validatePassword(newPassword);
+  if (!passwordCheck.valid) {
+    return NextResponse.json({ error: passwordCheck.error }, { status: 400 });
   }
 
   const result = await consumePasswordResetToken(token, newPassword);

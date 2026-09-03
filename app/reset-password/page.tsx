@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Field, PrimaryButton, SecondaryButton } from "@/components/ui/FormControls";
+import { PASSWORD_HINT, validatePassword } from "@/lib/passwordValidation";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -25,8 +26,9 @@ function ResetPasswordForm() {
       setError("Invalid or missing password reset token.");
       return;
     }
-    if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters.");
+    const passwordCheck = validatePassword(newPassword);
+    if (!passwordCheck.valid) {
+      setError(passwordCheck.error ?? "Please choose a stronger password.");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -85,13 +87,13 @@ function ResetPasswordForm() {
         Choose a new secure password for your Ogigrid Workflow account.
       </p>
 
-      <Field label="New Password">
+      <Field label="New Password" hint={PASSWORD_HINT}>
         <input
           type="password"
           className="input"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
-          placeholder="At least 6 characters"
+          placeholder="Enter a new password"
           required
           autoFocus
         />

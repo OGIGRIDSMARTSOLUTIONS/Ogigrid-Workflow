@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { requireAdmin, requireAuth } from "@/lib/server/guard";
+import { invalidUuidResponse } from "@/lib/server/ids";
 import { deleteProject, listProjects, updateProject } from "@/lib/server/repo";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const { user, error } = await requireAuth();
   if (error) return error;
+
+  const badId = invalidUuidResponse(params.id, "project ID");
+  if (badId) return badId;
 
   const projects = await listProjects();
   const project = projects.find((p) => p.id === params.id);
@@ -29,6 +33,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const { error } = await requireAdmin();
   if (error) return error;
 
+  const badId = invalidUuidResponse(params.id, "project ID");
+  if (badId) return badId;
+
   const body = await request.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
 
@@ -45,6 +52,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const { user, error } = await requireAdmin();
   if (error) return error;
+
+  const badId = invalidUuidResponse(params.id, "project ID");
+  if (badId) return badId;
+
   await deleteProject(params.id, user!.id);
   return NextResponse.json({ ok: true });
 }

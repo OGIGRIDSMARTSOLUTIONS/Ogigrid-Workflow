@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/server/guard";
 import { deleteOwnAccount, findEmployeeByEmail, findEmployeeById, updateEmployee } from "@/lib/server/repo";
-import { destroySession } from "@/lib/server/session";
+import { destroySession, destroyAllSessionsForEmployee, createSession } from "@/lib/server/session";
 import { verifyPassword } from "@/lib/server/password";
+import { validateEmail } from "@/lib/emailValidation";
+import { validatePassword } from "@/lib/passwordValidation";
 
 export async function PATCH(request: Request) {
   const { user, error } = await requireAuth();
@@ -19,12 +21,9 @@ export async function PATCH(request: Request) {
   // Email validation & uniqueness
   if (body.email !== undefined) {
     const email = (body.email || "").trim().toLowerCase();
-    if (!email) {
-      return NextResponse.json({ error: "Email address cannot be empty." }, { status: 400 });
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
+    const emailCheck = validateEmail(email);
+    if (!emailCheck.valid) {
+      return NextResponse.json({ error: emailCheck.error, suggestion: emailCheck.suggestion }, { status: 400 });
     }
     const existing = await findEmployeeByEmail(email);
     if (existing && existing.id !== user!.id) {
@@ -35,11 +34,9 @@ export async function PATCH(request: Request) {
   // Password verification & change
   const newPassword = body.newPassword || body.password;
   if (newPassword) {
-    if (typeof newPassword !== "string" || newPassword.trim().length === 0) {
-      return NextResponse.json({ error: "New password cannot be empty." }, { status: 400 });
-    }
-    if (newPassword.length < 6) {
-      return NextResponse.json({ error: "New password must be at least 6 characters long." }, { status: 400 });
+    const passwordCheck = validatePassword(newPassword);
+    if (!passwordCheck.valid) {
+      return NextResponse.json({ error: passwordCheck.error }, { status: 400 });
     }
     if (!body.currentPassword) {
       return NextResponse.json(
@@ -83,6 +80,11 @@ export async function PATCH(request: Request) {
     email: body.email ? body.email.trim().toLowerCase() : undefined,
     password: newPassword || undefined,
   });
+
+  if (newPassword) {
+    await destroyAllSessionsForEmployee(user!.id);
+    await createSession(user!.id);
+  }
 
   return NextResponse.json({ employee });
 }

@@ -10,6 +10,8 @@ import { useApp, EmployeeRemovalStrategy } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
 import { displayJobTitle } from "@/lib/data";
+import { validateEmail } from "@/lib/emailValidation";
+import { PASSWORD_HINT, validatePassword } from "@/lib/passwordValidation";
 import { Employee, EmployeeStatus, Role } from "@/lib/types";
 
 const emptyForm = {
@@ -82,8 +84,20 @@ export default function EmployeesPage() {
           setSubmitting(false);
           return;
         }
+        const emailCheck = validateEmail(form.email);
+        if (!emailCheck.valid) {
+          showToast(emailCheck.error ?? "Please enter a valid email address.", "error");
+          setSubmitting(false);
+          return;
+        }
         if (!form.password.trim()) {
           showToast("A temporary password is required.", "error");
+          setSubmitting(false);
+          return;
+        }
+        const passwordCheck = validatePassword(form.password);
+        if (!passwordCheck.valid) {
+          showToast(passwordCheck.error ?? "Please choose a stronger password.", "error");
           setSubmitting(false);
           return;
         }
@@ -264,7 +278,7 @@ export default function EmployeesPage() {
                 </Field>
                 <Field
                   label="Temporary password"
-                  hint="Used by this employee to log in for the first time."
+                  hint={PASSWORD_HINT}
                 >
                   <input
                     type="text"

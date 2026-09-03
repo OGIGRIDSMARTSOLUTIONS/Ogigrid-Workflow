@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/server/guard";
+import { invalidUuidResponse, isUuid } from "@/lib/server/ids";
 import { deactivateEmployee, updateEmployee } from "@/lib/server/repo";
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const { error } = await requireAdmin();
   if (error) return error;
+
+  const badId = invalidUuidResponse(params.id, "employee ID");
+  if (badId) return badId;
 
   const body = await request.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
@@ -26,7 +30,14 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   const { user, error } = await requireAdmin();
   if (error) return error;
 
+  const badId = invalidUuidResponse(params.id, "employee ID");
+  if (badId) return badId;
+
   const body = await request.json().catch(() => ({}));
+  if (body.reassignToEmployeeId && !isUuid(body.reassignToEmployeeId)) {
+    return NextResponse.json({ error: "Invalid reassignment employee ID." }, { status: 400 });
+  }
+
   const strategy =
     body.reassignToEmployeeId
       ? ({ type: "reassign", toEmployeeId: body.reassignToEmployeeId } as const)

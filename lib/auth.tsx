@@ -16,6 +16,7 @@ interface AuthContextValue {
     email: string;
     password: string;
     role: "Admin" | "Employee";
+    inviteCode?: string;
   }) => Promise<{ ok: boolean; error?: string }>;
   refresh: () => Promise<void>;
 }
@@ -71,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string;
     password: string;
     role: "Admin" | "Employee";
+    inviteCode?: string;
   }) {
     const res = await fetch("/api/auth/signup", {
       method: "POST",

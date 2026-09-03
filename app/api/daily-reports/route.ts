@@ -13,7 +13,7 @@ export async function POST(request: Request) {
 
   // The employee is always the authenticated user — nobody can submit a
   // report pretending to be someone else, regardless of what the client sends.
-  const report = await createDailyReport({
+  const result = await createDailyReport({
     employeeId: user!.id,
     date: body.date,
     workedOn: body.workedOn ?? "",
@@ -21,5 +21,8 @@ export async function POST(request: Request) {
     remaining: body.remaining ?? "",
     blockers: body.blockers ?? "",
   });
-  return NextResponse.json({ report });
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 400 });
+  }
+  return NextResponse.json({ report: result.report });
 }

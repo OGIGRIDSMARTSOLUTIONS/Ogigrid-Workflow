@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/server/guard";
+import { invalidUuidResponse, isUuid } from "@/lib/server/ids";
 import { deleteDocument, findDocumentById, listProjects, updateDocument } from "@/lib/server/repo";
 import { isDangerousMimeType } from "@/lib/server/fileSafety";
 
@@ -7,6 +8,9 @@ import { isDangerousMimeType } from "@/lib/server/fileSafety";
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const { user, error } = await requireAuth();
   if (error) return error;
+
+  const badId = invalidUuidResponse(params.id, "document ID");
+  if (badId) return badId;
 
   const doc = await findDocumentById(params.id);
   if (!doc) {
@@ -33,6 +37,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const { user, error } = await requireAuth();
   if (error) return error;
 
+  const badId = invalidUuidResponse(params.id, "document ID");
+  if (badId) return badId;
+
   const doc = await findDocumentById(params.id);
   if (!doc) return NextResponse.json({ error: "Document not found." }, { status: 404 });
 
@@ -57,6 +64,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 
   if (body.projectId !== undefined) {
+    if (!isUuid(body.projectId)) {
+      return NextResponse.json({ error: "Invalid project ID." }, { status: 400 });
+    }
     const nextProject = projects.find((p) => p.id === body.projectId);
     if (!nextProject) {
       return NextResponse.json({ error: "Target project does not exist." }, { status: 400 });
@@ -85,6 +95,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const { user, error } = await requireAuth();
   if (error) return error;
+
+  const badId = invalidUuidResponse(params.id, "document ID");
+  if (badId) return badId;
 
   const doc = await findDocumentById(params.id);
   if (!doc) return NextResponse.json({ error: "Document not found." }, { status: 404 });

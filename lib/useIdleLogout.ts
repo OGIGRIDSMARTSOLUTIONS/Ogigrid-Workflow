@@ -10,8 +10,10 @@ import {
   touchLastActivity,
 } from "@/lib/clientSession";
 
-// Boss requirement: end session after 10 minutes of inactivity.
-export const IDLE_TIMEOUT_MS = 10 * 60 * 1000;
+import { IDLE_TIMEOUT_MS } from "@/lib/sessionTiming";
+
+// Boss requirement: end session after a short period of inactivity.
+export { IDLE_TIMEOUT_MS };
 const CHECK_INTERVAL_MS = 30 * 1000;
 
 // Real user actions only — not mousemove/scroll (those never let the timer expire).

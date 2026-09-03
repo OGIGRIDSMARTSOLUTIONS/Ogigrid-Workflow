@@ -98,9 +98,17 @@ export default function DocumentsPage() {
     setModalOpen(true);
   }
 
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
   function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > MAX_FILE_SIZE) {
+      showToast("File is too large. Maximum size is 10 MB.", "error");
+      e.target.value = "";
+      return;
+    }
 
     // Default name to file name if name not entered yet or matches old file
     const reader = new FileReader();
@@ -367,12 +375,13 @@ export default function DocumentsPage() {
             {/* 1. File Upload */}
             <Field
               label={editingId ? "Replace File (optional)" : "Select File"}
-              hint="Select a PDF, image, spreadsheet, or document."
+              hint="PDF, images, documents, spreadsheets, or archives. Max 10 MB."
             >
               <input
                 ref={fileInputRef}
                 type="file"
                 className="input"
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,.csv,.txt,.zip,.rar"
                 onChange={handleFileSelected}
                 required={!editingId && !form.fileData}
               />

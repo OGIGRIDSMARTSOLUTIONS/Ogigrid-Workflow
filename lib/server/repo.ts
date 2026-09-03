@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { pool, query, queryOne } from "@/lib/db";
-import { computeProjectProgress } from "@/lib/data";
+import { computeProjectProgress, normalizeTaskProgressStatus } from "@/lib/data";
+import { MAX_DAILY_REPORTS_PER_DAY } from "@/lib/sessionTiming";
 import {
   mapEmployee,
   mapProject,
@@ -488,7 +489,7 @@ export async function createTask(
   },
   actorId: string
 ) {
-  const progress = input.status === "Completed" ? 100 : input.progress;
+  const { status, progress } = normalizeTaskProgressStatus(input.status, input.progress);
   const row = await queryOne<any>(
     `INSERT INTO tasks (project_id, assignee_id, name, description, status, priority, start_date, duration_days, deadline, progress, depends_on_task_id)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
@@ -497,7 +498,7 @@ export async function createTask(
       input.assigneeId,
       input.name,
       input.description,
-      input.status,
+      status,
       input.priority,
       input.startDate || null,
       input.durationDays,
@@ -548,9 +549,10 @@ export async function updateTask(
   const existing = await queryOne<any>(`SELECT * FROM tasks WHERE id = $1`, [id]);
   if (!existing) return null;
 
-  const nextStatus = patch.status ?? existing.status;
-  const nextProgress =
-    patch.progress !== undefined ? patch.progress : nextStatus === "Completed" ? 100 : existing.progress;
+  const { status: nextStatus, progress: nextProgress } = normalizeTaskProgressStatus(
+    patch.status ?? existing.status,
+    patch.progress !== undefined ? Number(patch.progress) : existing.progress,
+  );
 
   const row = await queryOne<any>(
     `UPDATE tasks SET
@@ -609,9 +611,9 @@ export async function updateTask(
     }
   }
 
-  if (patch.status && patch.status !== existing.status) {
-    await logActivity(`Task "${existing.name}" status changed to ${patch.status}.`);
-    if (patch.status === "Completed") {
+  if (nextStatus !== existing.status) {
+    await logActivity(`Task "${existing.name}" status changed to ${nextStatus}.`);
+    if (nextStatus === "Completed") {
       await notifyAdmins(
         actorId,
         "task-status",
@@ -897,6 +899,25 @@ export async function listDailyReports() {
   return rows.map(mapDailyReport);
 }
 
+export async function countDailyReportsForDay(
+  employeeId: string,
+  date: string,
+  excludeId?: string,
+) {
+  const row = excludeId
+    ? await queryOne<{ count: string }>(
+        `SELECT COUNT(*)::text AS count FROM daily_reports
+         WHERE employee_id = $1 AND date = $2 AND id <> $3`,
+        [employeeId, date, excludeId],
+      )
+    : await queryOne<{ count: string }>(
+        `SELECT COUNT(*)::text AS count FROM daily_reports
+         WHERE employee_id = $1 AND date = $2`,
+        [employeeId, date],
+      );
+  return Number(row?.count ?? 0);
+}
+
 export async function createDailyReport(input: {
   employeeId: string;
   date: string;
@@ -904,7 +925,15 @@ export async function createDailyReport(input: {
   completed: string;
   remaining: string;
   blockers: string;
-}) {
+}): Promise<{ ok: true; report: ReturnType<typeof mapDailyReport> } | { ok: false; error: string }> {
+  const existingCount = await countDailyReportsForDay(input.employeeId, input.date);
+  if (existingCount >= MAX_DAILY_REPORTS_PER_DAY) {
+    return {
+      ok: false,
+      error: "You can submit up to 3 daily reports per day. Edit an existing report instead.",
+    };
+  }
+
   const row = await queryOne<any>(
     `INSERT INTO daily_reports (employee_id, date, worked_on, completed, remaining, blockers)
      VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
@@ -928,7 +957,7 @@ export async function createDailyReport(input: {
     "report",
     row.id
   );
-  return mapDailyReport(row);
+  return { ok: true, report: mapDailyReport(row) };
 }
 
 export async function findDailyReportById(id: string) {
@@ -949,12 +978,24 @@ export async function updateDailyReport(
     return { ok: false as const, error: "You can only edit your own report." };
   }
 
+  const existingDate = mapDailyReport(existing).date;
+  const nextDate = patch.date !== undefined ? String(patch.date).slice(0, 10) : existingDate;
+  if (nextDate !== existingDate) {
+    const count = await countDailyReportsForDay(existing.employee_id, nextDate, existing.id);
+    if (count >= MAX_DAILY_REPORTS_PER_DAY) {
+      return {
+        ok: false as const,
+        error: "You can submit up to 3 daily reports per day. Pick another date or edit an existing report.",
+      };
+    }
+  }
+
   const row = await queryOne<any>(
     `UPDATE daily_reports SET
        date = $1, worked_on = $2, completed = $3, remaining = $4, blockers = $5
      WHERE id = $6 RETURNING *`,
     [
-      patch.date ?? existing.date,
+      nextDate,
       patch.workedOn ?? existing.worked_on,
       patch.completed ?? existing.completed,
       patch.remaining ?? existing.remaining,
@@ -1038,4 +1079,24 @@ export async function markAllNotificationsRead(userId: string) {
 export async function listActivity() {
   const rows = await query<any>(`SELECT * FROM activity ORDER BY created_at DESC LIMIT 60`);
   return rows.map(mapActivity);
+}
+
+// ---------------------------------------------------------------------
+// Workspace settings (key/value store).
+// ---------------------------------------------------------------------
+
+export async function getWorkspaceSetting(key: string): Promise<string> {
+  const row = await queryOne<{ value: string }>(
+    `SELECT value FROM workspace_settings WHERE key = $1`,
+    [key],
+  );
+  return row?.value ?? "";
+}
+
+export async function setWorkspaceSetting(key: string, value: string): Promise<void> {
+  await query(
+    `INSERT INTO workspace_settings (key, value) VALUES ($1, $2)
+     ON CONFLICT (key) DO UPDATE SET value = $2`,
+    [key, value],
+  );
 }

@@ -11,6 +11,7 @@ import { useApp } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
 import { formatDate, formatDateTime, todayIso } from "@/lib/data";
+import { MAX_DAILY_REPORTS_PER_DAY } from "@/lib/sessionTiming";
 import { DailyReport } from "@/lib/types";
 
 const emptyForm = {
@@ -128,6 +129,13 @@ export default function DailyReportsPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!currentUser || isSubmitting) return;
+    const reportsThatDay = dailyReports.filter(
+      (r) => r.employeeId === currentUser.id && r.date === form.date,
+    ).length;
+    if (reportsThatDay >= MAX_DAILY_REPORTS_PER_DAY) {
+      showToast("You can submit up to 3 daily reports per day. Edit an existing report instead.", "error");
+      return;
+    }
     setIsSubmitting(true);
     try {
       await addDailyReport(form);
@@ -533,7 +541,7 @@ export default function DailyReportsPage() {
             <Field label="Employee">
               <p className="pt-1.5 text-sm font-medium text-ink">{currentUser.name}</p>
             </Field>
-            <Field label="Date">
+            <Field label="Date" hint="Up to 3 reports per person per day.">
               <input
                 type="date"
                 className="input"

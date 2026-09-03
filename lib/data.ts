@@ -134,20 +134,36 @@ export function isAfter6pm(): boolean {
   return now.getHours() >= 18;
 }
 
+export function isTaskStatus(value: unknown): value is TaskStatus {
+  return statusOptions.includes(value as TaskStatus);
+}
+
 // Keep task status and progress aligned when either changes.
+// Rules:
+// - Completed always means 100%.
+// - 100% on In Progress / Review means Completed.
+// - Choosing To Do with leftover 100% reopens at 0% (cannot stay "To Do at 100%").
+// - Sliding progress above 0 while on To Do promotes to In Progress.
+// - Blocked cannot sit at 100%; cap at 99% so project % stays honest.
 export function normalizeTaskProgressStatus(
-  status: TaskStatus,
+  status: TaskStatus | string,
   progress: number
 ): { status: TaskStatus; progress: number } {
-  let nextStatus = status;
-  let nextProgress = Math.max(0, Math.min(100, Math.round(progress)));
+  let nextStatus: TaskStatus = isTaskStatus(status) ? status : "To Do";
+  let nextProgress = Math.max(0, Math.min(100, Math.round(Number(progress) || 0)));
 
   if (nextStatus === "Completed") {
     nextProgress = 100;
   } else if (nextProgress >= 100) {
-    nextStatus = "Completed";
-    nextProgress = 100;
-  } else if (nextProgress > 0 && nextStatus === "To Do") {
+    if (nextStatus === "To Do") {
+      nextProgress = 0;
+    } else if (nextStatus === "Blocked") {
+      nextProgress = 99;
+    } else {
+      nextStatus = "Completed";
+      nextProgress = 100;
+    }
+  } else if (nextStatus === "To Do" && nextProgress > 0) {
     nextStatus = "In Progress";
   }
 

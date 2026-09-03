@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { findEmployeeByEmail, createPasswordResetToken } from "@/lib/server/repo";
 import { sendPasswordResetEmail } from "@/lib/server/email";
 import { isRateLimited, getClientIp } from "@/lib/server/rateLimit";
+import { validateEmail } from "@/lib/emailValidation";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -24,6 +25,11 @@ export async function POST(request: Request) {
   });
 
   if (!email) return genericResponse;
+
+  // Skip send for invalid/typo emails, but keep the generic response so this
+  // endpoint cannot be used to probe which addresses have accounts.
+  const emailCheck = validateEmail(email);
+  if (!emailCheck.valid) return genericResponse;
 
   const employee = await findEmployeeByEmail(email);
   if (!employee || employee.status === "Inactive") return genericResponse;

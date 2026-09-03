@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { consumeIdleLogoutMessage } from "@/lib/clientSession";
+import { validateEmail } from "@/lib/emailValidation";
+import { PASSWORD_HINT, validatePassword } from "@/lib/passwordValidation";
 import { Field, PrimaryButton, SecondaryButton } from "@/components/ui/FormControls";
 import { Role } from "@/lib/types";
 
@@ -21,6 +23,7 @@ export default function LoginPage() {
     lastName: "",
     email: "",
     password: "",
+    inviteCode: "",
     role: "Employee" as Role,
   });
   const [error, setError] = useState<string | null>(null);
@@ -49,8 +52,18 @@ export default function LoginPage() {
       setError("First name and last name are required.");
       return;
     }
-    if (signupForm.password.length < 4) {
-      setError("Password must be at least 4 characters.");
+    const emailCheck = validateEmail(signupForm.email);
+    if (!emailCheck.valid) {
+      setError(emailCheck.error ?? "Please enter a valid email address.");
+      return;
+    }
+    const passwordCheck = validatePassword(signupForm.password);
+    if (!passwordCheck.valid) {
+      setError(passwordCheck.error ?? "Please choose a stronger password.");
+      return;
+    }
+    if (!isFirstRun && !signupForm.inviteCode.trim()) {
+      setError("Invite code is required. Ask your admin for the company invite code.");
       return;
     }
     setSubmitting(true);
@@ -60,6 +73,7 @@ export default function LoginPage() {
       email: signupForm.email,
       password: signupForm.password,
       role: signupForm.role,
+      inviteCode: signupForm.inviteCode.trim(),
     });
     setSubmitting(false);
     if (!result.ok) setError(result.error ?? "Unable to create the account.");
@@ -154,7 +168,7 @@ export default function LoginPage() {
                   required
                 />
               </Field>
-              <Field label="Password">
+              <Field label="Password" hint={PASSWORD_HINT}>
                 <input
                   type="password"
                   className="input"
@@ -164,15 +178,14 @@ export default function LoginPage() {
                 />
               </Field>
               {!isFirstRun && (
-                <Field label="Account type">
-                  <select
+                <Field label="Invite Code" hint="Ask your admin for the company invite code.">
+                  <input
                     className="input"
-                    value={signupForm.role}
-                    onChange={(e) => setSignupForm({ ...signupForm, role: e.target.value as Role })}
-                  >
-                    <option value="Employee">Partner</option>
-                    <option value="Admin">Administrator</option>
-                  </select>
+                    value={signupForm.inviteCode}
+                    onChange={(e) => setSignupForm({ ...signupForm, inviteCode: e.target.value })}
+                    placeholder="Enter invite code"
+                    required
+                  />
                 </Field>
               )}
               {error && <p className="text-sm text-status-notsubmitted">{error}</p>}

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/server/guard";
+import { isUuid } from "@/lib/server/ids";
 import { createTask } from "@/lib/server/repo";
 
 export async function POST(request: Request) {
@@ -9,6 +10,15 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   if (!body || !body.name || !body.projectId) {
     return NextResponse.json({ error: "Task name and project are required." }, { status: 400 });
+  }
+  if (!isUuid(body.projectId)) {
+    return NextResponse.json({ error: "Invalid project ID." }, { status: 400 });
+  }
+  if (body.assigneeId && !isUuid(body.assigneeId)) {
+    return NextResponse.json({ error: "Invalid assignee ID." }, { status: 400 });
+  }
+  if (body.dependsOnTaskId && !isUuid(body.dependsOnTaskId)) {
+    return NextResponse.json({ error: "Invalid dependency task ID." }, { status: 400 });
   }
 
   const task = await createTask(

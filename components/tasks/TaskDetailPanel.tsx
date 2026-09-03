@@ -162,7 +162,9 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
             disabled={!canEditStatus}
             onChange={(e) => {
               const status = e.target.value as TaskStatus;
-              const normalized = normalizeTaskProgressStatus(status, draft.progress);
+              // When reopening a completed task, drop leftover 100% progress.
+              const progressForStatus = status === "To Do" ? 0 : draft.progress;
+              const normalized = normalizeTaskProgressStatus(status, progressForStatus);
               setDraft({ ...draft, ...normalized });
             }}
           >

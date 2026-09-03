@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { countEmployees, createEmployee, findEmployeeByEmail } from "@/lib/server/repo";
+import { countEmployees, createEmployee, findEmployeeByEmail, getWorkspaceSetting } from "@/lib/server/repo";
 import { createSession } from "@/lib/server/session";
 import { isRateLimited, getClientIp } from "@/lib/server/rateLimit";
+import { validateEmail } from "@/lib/emailValidation";
+import { validatePassword } from "@/lib/passwordValidation";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -28,8 +30,15 @@ export async function POST(request: Request) {
   if (!firstName || !lastName || !email || !password) {
     return NextResponse.json({ error: "First name, last name, email and password are required." }, { status: 400 });
   }
-  if (password.length < 6) {
-    return NextResponse.json({ error: "Password must be at least 6 characters." }, { status: 400 });
+
+  const emailCheck = validateEmail(email);
+  if (!emailCheck.valid) {
+    return NextResponse.json({ error: emailCheck.error, suggestion: emailCheck.suggestion }, { status: 400 });
+  }
+
+  const passwordCheck = validatePassword(password);
+  if (!passwordCheck.valid) {
+    return NextResponse.json({ error: passwordCheck.error }, { status: 400 });
   }
 
   const existing = await findEmployeeByEmail(email);
@@ -39,6 +48,18 @@ export async function POST(request: Request) {
 
   const employeeCount = await countEmployees();
   const isFirstAccount = employeeCount === 0;
+
+  // Require invite code for all signups after the first account
+  if (!isFirstAccount) {
+    const inviteCode = (body.inviteCode ?? "").trim();
+    const expectedCode = await getWorkspaceSetting("invite_code");
+    if (!inviteCode) {
+      return NextResponse.json({ error: "Invite code is required to sign up." }, { status: 400 });
+    }
+    if (inviteCode.toUpperCase() !== expectedCode.toUpperCase()) {
+      return NextResponse.json({ error: "Invalid invite code. Please contact your admin for the correct code." }, { status: 403 });
+    }
+  }
   const role: "Admin" | "Employee" = isFirstAccount ? "Admin" : "Employee";
 
   // Public signup is only allowed to create an Admin on the very first account.

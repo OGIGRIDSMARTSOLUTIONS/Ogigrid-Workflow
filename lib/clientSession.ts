@@ -31,7 +31,7 @@ export function consumeIdleLogoutMessage(): string | null {
   const reason = sessionStorage.getItem(LOGOUT_REASON_KEY);
   sessionStorage.removeItem(LOGOUT_REASON_KEY);
   if (reason === "idle") {
-    return "Your session ended after 10 minutes of inactivity. Please sign in again.";
+    return "Your session ended after 15 minutes of inactivity. Please sign in again.";
   }
   return null;
 }

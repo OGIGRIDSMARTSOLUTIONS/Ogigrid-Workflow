@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/server/guard";
-import { query, queryOne } from "@/lib/db";
+import { invalidUuidResponse, isUuid } from "@/lib/server/ids";
+import { queryOne } from "@/lib/db";
 import { updateTask, deleteTask } from "@/lib/server/repo";
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const { user, error } = await requireAuth();
   if (error) return error;
+
+  const badId = invalidUuidResponse(params.id, "task ID");
+  if (badId) return badId;
 
   const body = await request.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
@@ -39,6 +43,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         progress: body.progress !== undefined ? Number(body.progress) : undefined,
       };
 
+  if (patch.assigneeId !== undefined && patch.assigneeId !== null && !isUuid(patch.assigneeId)) {
+    return NextResponse.json({ error: "Invalid assignee ID." }, { status: 400 });
+  }
+  if (patch.dependsOnTaskId !== undefined && patch.dependsOnTaskId !== null && !isUuid(patch.dependsOnTaskId)) {
+    return NextResponse.json({ error: "Invalid dependency task ID." }, { status: 400 });
+  }
+
   const task = await updateTask(params.id, patch, user!.id);
   return NextResponse.json({ task });
 }
@@ -49,6 +60,10 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   if (user!.role !== "Admin") {
     return NextResponse.json({ error: "Admin access required." }, { status: 403 });
   }
+
+  const badId = invalidUuidResponse(params.id, "task ID");
+  if (badId) return badId;
+
   await deleteTask(params.id, user!.id);
   return NextResponse.json({ ok: true });
 }

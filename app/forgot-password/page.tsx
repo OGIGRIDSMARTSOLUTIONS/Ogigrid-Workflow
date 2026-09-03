@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Field, PrimaryButton, SecondaryButton } from "@/components/ui/FormControls";
+import { validateEmail } from "@/lib/emailValidation";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -13,7 +14,11 @@ export default function ForgotPasswordPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim()) return;
+    const emailCheck = validateEmail(email);
+    if (!emailCheck.valid) {
+      setError(emailCheck.error ?? "Please enter a valid email address.");
+      return;
+    }
 
     setError(null);
     setSubmitting(true);

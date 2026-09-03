@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/server/guard";
 import { createEmployee, findEmployeeByEmail } from "@/lib/server/repo";
+import { validateEmail } from "@/lib/emailValidation";
+import { validatePassword } from "@/lib/passwordValidation";
 
 export async function POST(request: Request) {
   const { error } = await requireAdmin();
@@ -18,6 +20,16 @@ export async function POST(request: Request) {
 
   if (!name || !email || !password) {
     return NextResponse.json({ error: "Name, email and password are required." }, { status: 400 });
+  }
+
+  const emailCheck = validateEmail(email);
+  if (!emailCheck.valid) {
+    return NextResponse.json({ error: emailCheck.error, suggestion: emailCheck.suggestion }, { status: 400 });
+  }
+
+  const passwordCheck = validatePassword(password);
+  if (!passwordCheck.valid) {
+    return NextResponse.json({ error: passwordCheck.error }, { status: 400 });
   }
 
   const existing = await findEmployeeByEmail(email);

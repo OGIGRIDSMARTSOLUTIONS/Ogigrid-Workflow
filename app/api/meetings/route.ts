@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/server/guard";
+import { isUuid } from "@/lib/server/ids";
 import { createMeeting } from "@/lib/server/repo";
 
 export async function POST(request: Request) {
@@ -13,6 +14,13 @@ export async function POST(request: Request) {
 
   if (!body.date) {
     return NextResponse.json({ error: "Meeting date is required." }, { status: 400 });
+  }
+
+  if (body.projectId && !isUuid(body.projectId)) {
+    return NextResponse.json({ error: "Invalid project ID." }, { status: 400 });
+  }
+  if (Array.isArray(body.attendeeIds) && body.attendeeIds.some((id: unknown) => !isUuid(id))) {
+    return NextResponse.json({ error: "Invalid attendee ID." }, { status: 400 });
   }
 
   const meeting = await createMeeting(

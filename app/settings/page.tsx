@@ -10,6 +10,8 @@ import { useApp } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
 import { departmentSuggestions } from "@/lib/data";
+import { validateEmail } from "@/lib/emailValidation";
+import { PASSWORD_HINT, validatePassword } from "@/lib/passwordValidation";
 
 export default function SettingsPage() {
   const { employees, projects, updateOwnAccount, deleteOwnAccount } = useApp();
@@ -18,6 +20,10 @@ export default function SettingsPage() {
   const router = useRouter();
   const [workspaceName, setWorkspaceName] = useState("Ogigrid");
   const [saving, setSaving] = useState(false);
+  const [inviteCode, setInviteCode] = useState("");
+  const [inviteCodeLoaded, setInviteCodeLoaded] = useState(false);
+  const [savingInvite, setSavingInvite] = useState(false);
+  const [showInviteCode, setShowInviteCode] = useState(false);
 
   const [account, setAccount] = useState({
     firstName: currentUser?.firstName ?? "",
@@ -46,8 +52,41 @@ export default function SettingsPage() {
     }
   }, [currentUser]);
 
+  // Fetch invite code for admins
+  useEffect(() => {
+    if (currentUser?.role === "Admin") {
+      fetch("/api/workspace/invite-code")
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => { if (d?.inviteCode) { setInviteCode(d.inviteCode); setInviteCodeLoaded(true); } })
+        .catch(() => {});
+    }
+  }, [currentUser]);
+
   if (!currentUser) return null;
   const isAdmin = currentUser.role === "Admin";
+
+  async function handleSaveInviteCode() {
+    const code = inviteCode.trim();
+    if (!code) { showToast("Invite code cannot be empty.", "error"); return; }
+    if (code.length < 4) { showToast("Invite code must be at least 4 characters.", "error"); return; }
+    setSavingInvite(true);
+    try {
+      const res = await fetch("/api/workspace/invite-code", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inviteCode: code }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to update invite code.");
+      }
+      showToast("Invite code updated successfully.");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Unable to update invite code.", "error");
+    } finally {
+      setSavingInvite(false);
+    }
+  }
 
   const activeDepartments = Array.from(
     new Set([...departmentSuggestions, ...employees.flatMap((e) => e.departments)])
@@ -64,8 +103,9 @@ export default function SettingsPage() {
       showToast("Please enter your name.", "error");
       return;
     }
-    if (!email) {
-      showToast("Please enter a valid email address.", "error");
+    const emailCheck = validateEmail(email);
+    if (!emailCheck.valid) {
+      showToast(emailCheck.error ?? "Please enter a valid email address.", "error");
       return;
     }
 
@@ -74,8 +114,9 @@ export default function SettingsPage() {
         showToast("Please enter your current password to set a new password.", "error");
         return;
       }
-      if (account.newPassword.length < 6) {
-        showToast("New password must be at least 6 characters.", "error");
+      const passwordCheck = validatePassword(account.newPassword);
+      if (!passwordCheck.valid) {
+        showToast(passwordCheck.error ?? "Please choose a stronger password.", "error");
         return;
       }
       if (account.newPassword !== account.confirmPassword) {
@@ -185,7 +226,7 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field
                   label="New password"
-                  hint="Minimum 6 characters."
+                  hint={PASSWORD_HINT}
                 >
                   <input
                     type="password"
@@ -270,6 +311,47 @@ export default function SettingsPage() {
                 Save
               </PrimaryButton>
             </div>
+          </Panel>
+        )}
+
+        {isAdmin && (
+          <Panel title="Invite Code">
+            <p className="text-sm text-ink-muted mb-3">
+              New team members need this code to sign up. Share it privately with people you want
+              to join the workspace. You can change it anytime to revoke access for future signups.
+            </p>
+            {inviteCodeLoaded ? (
+              <div className="space-y-3">
+                <Field label="Current invite code">
+                  <div className="flex gap-2">
+                    <input
+                      className="input flex-1"
+                      type={showInviteCode ? "text" : "password"}
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value)}
+                      placeholder="e.g. OGIGRID2026"
+                    />
+                    <SecondaryButton
+                      type="button"
+                      onClick={() => setShowInviteCode(!showInviteCode)}
+                      className="shrink-0"
+                    >
+                      {showInviteCode ? "Hide" : "Show"}
+                    </SecondaryButton>
+                  </div>
+                </Field>
+                <PrimaryButton
+                  type="button"
+                  onClick={handleSaveInviteCode}
+                  loading={savingInvite}
+                  loadingText="Saving..."
+                >
+                  Update Invite Code
+                </PrimaryButton>
+              </div>
+            ) : (
+              <p className="text-sm text-ink-faint">Loading...</p>
+            )}
           </Panel>
         )}
 
